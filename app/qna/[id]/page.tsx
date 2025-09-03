@@ -6,10 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
 import { revalidatePath } from "next/cache";
-// (you already have these imports in your file)
-import { prisma } from "@/lib/prisma";
-import { auth, requireRole } from "@/lib/auth";
-import { postDiscordWebhook } from "@/lib/discord";
 
 async function addAnswer(formData: FormData): Promise<void> {
   "use server";
