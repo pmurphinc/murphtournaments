@@ -10,32 +10,22 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
-// NOTE: do NOT export this function.
-// It must accept only (formData) and return void | Promise<void>.
+// Do NOT export this; server action must return void
 async function askQuestion(formData: FormData): Promise<void> {
   "use server";
 
   const session = await auth();
-  if (!session || !(session.user as any)?.id) {
-    throw new Error("Sign in required");
-  }
+  if (!session || !(session.user as any)?.id) throw new Error("Sign in required");
 
   const title = String(formData.get("title") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
   const rawTags = String(formData.get("tags") ?? "").trim();
 
   const tags =
-    rawTags.length > 0
-      ? rawTags.split(",").map((t) => t.trim()).filter(Boolean)
-      : [];
+    rawTags ? rawTags.split(",").map(t => t.trim()).filter(Boolean) : [];
 
   const q = await prisma.question.create({
-    data: {
-      title,
-      body,
-      tags,
-      authorId: (session.user as any).id,
-    },
+    data: { title, body, tags, authorId: (session.user as any).id },
   });
 
   revalidatePath("/qna");
@@ -46,12 +36,11 @@ export default async function QnaPage() {
   const session = await auth();
 
   const questions = await prisma.question.findMany({
-    orderBy: { createdAt: "desc" },
+    orderBy: { id: "desc" },              // <-- CHANGED: no createdAt
     select: {
       id: true,
       title: true,
       tags: true,
-      createdAt: true,
       answers: { select: { id: true } },
     },
   });
@@ -61,17 +50,14 @@ export default async function QnaPage() {
       <header className="space-y-1">
         <h1 className="text-2xl font-mono">Q&amp;A</h1>
         <p className="text-sm opacity-70">
-          Ask questions about rules, format, scheduling, or tech. Staff can mark
-          official answers.
+          Ask questions about rules, format, scheduling, or tech. Staff can mark official answers.
         </p>
       </header>
 
-      {/* Ask form */}
       <section className="space-y-4">
         <h2 className="text-xl">Ask a question</h2>
-        {!session?.user && (
-          <p className="opacity-70 text-sm">Sign in with Discord to ask.</p>
-        )}
+        {!session?.user && <p className="opacity-70 text-sm">Sign in with Discord to ask.</p>}
+
         <form action={askQuestion} className="space-y-3">
           <label className="sr-only" htmlFor="title">Title</label>
           <Input id="title" name="title" placeholder="Title" required />
@@ -85,7 +71,6 @@ export default async function QnaPage() {
         </form>
       </section>
 
-      {/* Questions list */}
       <section className="space-y-3">
         <h2 className="text-xl">Recent questions</h2>
         {questions.length === 0 ? (
