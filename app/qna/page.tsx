@@ -1,26 +1,32 @@
+// app/qna/page.tsx
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { askQuestionSchema } from "@/lib/validators";
-import { getClientIp } from "@/lib/utils";
-import { rateLimit } from "@/lib/rateLimit";
-import { createClient } from "@/lib/supabase";
+
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
-async function askQuestion(formData: FormData): Promise<void> {
+// Server Action: must return void | Promise<void>
+export async function askQuestion(formData: FormData): Promise<void> {
   "use server";
 
   const session = await auth();
-  if (!session) throw new Error("Sign in required");
+  if (!session || !(session.user as any)?.id) {
+    throw new Error("Sign in required");
+  }
 
-  const title = String(formData.get("title") ?? "");
-  const body  = String(formData.get("body") ?? "");
-  const tags  = String(formData.get("tags") ?? "")
-                  .split(",")
-                  .map(t => t.trim())
-                  .filter(Boolean);
+  const title = String(formData.get("title") ?? "").trim();
+  const body = String(formData.get("body") ?? "").trim();
+  const rawTags = String(formData.get("tags") ?? "").trim();
+
+  const tags =
+    rawTags.length > 0
+      ? rawTags.split(",").map((t) => t.trim()).filter(Boolean)
+      : [];
 
   const q = await prisma.question.create({
     data: {
@@ -29,35 +35,99 @@ async function askQuestion(formData: FormData): Promise<void> {
       tags,
       authorId: (session.user as any).id,
     },
+  });
+
+  // refresh list and jump to the new question page
+  revalidatePath("/qna");
+  redirect(`/qna/${q.id}`);
+}
+
 export default async function QnaPage() {
   const session = await auth();
-  const items = await prisma.question.findMany({ orderBy: { id: "desc" }, take: 50 });
+
+  const questions = await prisma.question.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      title: true,
+      tags: true,
+      createdAt: true,
+      answers: { select: { id: true } },
+    },
+  });
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="md:col-span-2 space-y-3">
-        <h1 className="text-2xl">Q&A / Help Desk</h1>
-        <ul className="space-y-2">
-          {items.map(q => (
-            <li key={q.id} className="border border-zinc-800 rounded p-3 hover:border-cyber-gold">
-              <Link href={`/qna/${q.id}`} className="text-cyber-neon">{q.title}</Link>
-              <div className="mt-1 text-xs opacity-70">{q.tags.join(", ")} • {q.status}</div>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="space-y-3">
+    <div className="space-y-8">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-mono">Q&amp;A</h1>
+        <p className="text-sm opacity-70">
+          Ask questions about rules, format, scheduling, or tech. Staff can mark
+          official answers.
+        </p>
+      </header>
+
+      {/* Ask form */}
+      <section className="space-y-4">
         <h2 className="text-xl">Ask a question</h2>
-        {!session?.user && <p className="opacity-70 text-sm">Sign in with Discord to ask.</p>}
-        <form action={askQuestion}>
-          <label className="sr-only" htmlFor="title">Title</label>
+        {!session?.user && (
+          <p className="opacity-70 text-sm">
+            Sign in with Discord to ask.
+          </p>
+        )}
+        <form action={askQuestion} className="space-y-3">
+          <label className="sr-only" htmlFor="title">
+            Title
+          </label>
           <Input id="title" name="title" placeholder="Title" required />
-          <label className="sr-only" htmlFor="body">Body</label>
-          <Textarea id="body" name="body" placeholder="Describe your issue..." required />
-          <label className="sr-only" htmlFor="tags">Tags</label>
-          <Input id="tags" name="tags" placeholder="Tags (comma separated)" />
-          <Button type="submit" className="mt-2 w-full">Submit</Button>
+
+          <label className="sr-only" htmlFor="body">
+            Body
+          </label>
+          <Textarea
+            id="body"
+            name="body"
+            placeholder="Describe your question…"
+            required
+          />
+
+          <Input
+            name="tags"
+            placeholder="tags (comma separated, e.g. Rules, Format)"
+          />
+
+          <Button type="submit" disabled={!session?.user}>
+            Ask
+          </Button>
         </form>
-      </div>
+      </section>
+
+      {/* Questions list */}
+      <section className="space-y-3">
+        <h2 className="text-xl">Recent questions</h2>
+        {questions.length === 0 ? (
+          <p className="opacity-70">No questions yet.</p>
+        ) : (
+          <ul className="space-y-2">
+            {questions.map((q) => (
+              <li
+                key={q.id}
+                className="border border-zinc-800 rounded p-3 hover:border-cyan-700 transition"
+              >
+                <Link
+                  href={`/qna/${q.id}`}
+                  className="font-medium hover:underline"
+                >
+                  {q.title}
+                </Link>
+                <div className="text-xs opacity-70 mt-1">
+                  {q.tags?.length ? q.tags.join(", ") : "no tags"} •{" "}
+                  {q.answers.length} answer{q.answers.length === 1 ? "" : "s"}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
