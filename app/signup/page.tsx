@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
-async function upsertTeam(formData: FormData): Promise<{ ok: boolean; teamId: string; ticket: string; }> {
+async function upsertTeam(formData: FormData): Promise<void> {
   "use server";
   const session = await auth();
   if (!session?.user) throw new Error("Sign in required");
@@ -59,7 +59,7 @@ async function upsertTeam(formData: FormData): Promise<{ ok: boolean; teamId: st
   const supa = createClient();
   await supa.channel(`realtime:tournament:${team.tournamentId}:signups`).send({ type: "broadcast", event: "signup", payload: { teamName: team.name } });
 
-  return { ok: true, teamId: team.id, ticket: team.id.slice(0, 8) };
+  // Optionally, you can redirect or set a success message here if needed.
 }
 
 export default async function SignUpPage() {
