@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
-// Server Action: must return void | Promise<void>
-export async function askQuestion(formData: FormData): Promise<void> {
+// NOTE: do NOT export this function.
+// It must accept only (formData) and return void | Promise<void>.
+async function askQuestion(formData: FormData): Promise<void> {
   "use server";
 
   const session = await auth();
@@ -37,7 +38,6 @@ export async function askQuestion(formData: FormData): Promise<void> {
     },
   });
 
-  // refresh list and jump to the new question page
   revalidatePath("/qna");
   redirect(`/qna/${q.id}`);
 }
@@ -70,34 +70,18 @@ export default async function QnaPage() {
       <section className="space-y-4">
         <h2 className="text-xl">Ask a question</h2>
         {!session?.user && (
-          <p className="opacity-70 text-sm">
-            Sign in with Discord to ask.
-          </p>
+          <p className="opacity-70 text-sm">Sign in with Discord to ask.</p>
         )}
         <form action={askQuestion} className="space-y-3">
-          <label className="sr-only" htmlFor="title">
-            Title
-          </label>
+          <label className="sr-only" htmlFor="title">Title</label>
           <Input id="title" name="title" placeholder="Title" required />
 
-          <label className="sr-only" htmlFor="body">
-            Body
-          </label>
-          <Textarea
-            id="body"
-            name="body"
-            placeholder="Describe your question…"
-            required
-          />
+          <label className="sr-only" htmlFor="body">Body</label>
+          <Textarea id="body" name="body" placeholder="Describe your question…" required />
 
-          <Input
-            name="tags"
-            placeholder="tags (comma separated, e.g. Rules, Format)"
-          />
+          <Input name="tags" placeholder="tags (comma separated, e.g. Rules, Format)" />
 
-          <Button type="submit" disabled={!session?.user}>
-            Ask
-          </Button>
+          <Button type="submit" disabled={!session?.user}>Ask</Button>
         </form>
       </section>
 
@@ -109,19 +93,12 @@ export default async function QnaPage() {
         ) : (
           <ul className="space-y-2">
             {questions.map((q) => (
-              <li
-                key={q.id}
-                className="border border-zinc-800 rounded p-3 hover:border-cyan-700 transition"
-              >
-                <Link
-                  href={`/qna/${q.id}`}
-                  className="font-medium hover:underline"
-                >
+              <li key={q.id} className="border border-zinc-800 rounded p-3 hover:border-cyan-700 transition">
+                <Link href={`/qna/${q.id}`} className="font-medium hover:underline">
                   {q.title}
                 </Link>
                 <div className="text-xs opacity-70 mt-1">
-                  {q.tags?.length ? q.tags.join(", ") : "no tags"} •{" "}
-                  {q.answers.length} answer{q.answers.length === 1 ? "" : "s"}
+                  {q.tags?.length ? q.tags.join(", ") : "no tags"} • {q.answers.length} answer{q.answers.length === 1 ? "" : "s"}
                 </div>
               </li>
             ))}
