@@ -9,31 +9,26 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
-async function askQuestion(formData: FormData, headers: Headers) {
+async function askQuestion(formData: FormData): Promise<void> {
   "use server";
+
   const session = await auth();
-  if (!session?.user) throw new Error("Sign in required");
-  const ip = getClientIp(headers);
-  const rl = rateLimit(ip, "qna", 15, 60000);
-  if (!rl.ok) throw new Error("Slow down");
+  if (!session) throw new Error("Sign in required");
 
-  const raw = {
-    title: formData.get("title") as string,
-    body: formData.get("body") as string,
-    tags: ((formData.get("tags") as string) || "").split(",").map(s => s.trim()).filter(Boolean),
-    tournamentId: (formData.get("tournamentId") as string) || undefined
-  };
-  const parsed = askQuestionSchema.parse(raw);
+  const title = String(formData.get("title") ?? "");
+  const body  = String(formData.get("body") ?? "");
+  const tags  = String(formData.get("tags") ?? "")
+                  .split(",")
+                  .map(t => t.trim())
+                  .filter(Boolean);
+
   const q = await prisma.question.create({
-    data: { authorId: (session.user as any).id, tournamentId: parsed.tournamentId, title: parsed.title, body: parsed.body, tags: parsed.tags }
-  });
-
-  const supa = createClient();
-  await supa.channel("realtime:qna").send({ type: "broadcast", event: "question:new", payload: { id: q.id } });
-
-  return { ok: true, id: q.id };
-}
-
+    data: {
+      title,
+      body,
+      tags,
+      authorId: (session.user as any).id,
+    },
 export default async function QnaPage() {
   const session = await auth();
   const items = await prisma.question.findMany({ orderBy: { id: "desc" }, take: 50 });
