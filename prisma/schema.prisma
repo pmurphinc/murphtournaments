@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String       @id @default(cuid())
+  createdAt     DateTime     @default(now())
+  discordId     String       @unique
+  email         String?
+  role          Role         @default(USER)
+  answers       Answer[]
+  hostedMatches Match[]      @relation("HostedMatches")
+  questions     Question[]
+  captainOf     Team[]       @relation("Captain")
+  teams         TeamMember[]
+}
+
+model Tournament {
+  id             String           @id @default(cuid())
+  name           String
+  slug           String           @unique
+  status         TournamentStatus @default(DRAFT)
+  startsAt       DateTime?
+  checkInOpensAt DateTime?
+  rosterLockAt   DateTime?
+  rules          String?
+  maxTeams       Int?
+  matches        Match[]
+  teams          Team[]
+}
+
+model Team {
+  id           String       @id @default(cuid())
+  name         String       @unique
+  tournamentId String
+  captainId    String
+  approved     Boolean      @default(false)
+  notes        String?
+  captain      User         @relation("Captain", fields: [captainId], references: [id])
+  tournament   Tournament   @relation(fields: [tournamentId], references: [id])
+  members      TeamMember[]
+}
+
+model TeamMember {
+  id          String  @id @default(cuid())
+  userId      String?
+  teamId      String
+  displayName String
+  embarkId    String
+  isSub       Boolean @default(false)
+  team        Team    @relation(fields: [teamId], references: [id])
+  user        User?   @relation(fields: [userId], references: [id])
+}
+
+model Question {
+  id               String   @id @default(cuid())
+  authorId         String
+  tournamentId     String?
+  title            String
+  body             String
+  tags             String[]
+  status           QStatus  @default(OPEN)
+  officialAnswerId String?
+  answers          Answer[]
+  author           User     @relation(fields: [authorId], references: [id])
+}
+
+model Answer {
+  id         String   @id @default(cuid())
+  questionId String
+  authorId   String
+  body       String
+  official   Boolean  @default(false)
+  author     User     @relation(fields: [authorId], references: [id])
+  question   Question @relation(fields: [questionId], references: [id])
+}
+
+model Match {
+  id           String      @id @default(cuid())
+  tournamentId String
+  round        Int
+  bestOf       Int
+  startAt      DateTime?
+  status       MatchStatus @default(PENDING)
+  hostId       String?
+  teamAId      String?
+  teamBId      String?
+  scoreA       Int?
+  scoreB       Int?
+  host         User?       @relation("HostedMatches", fields: [hostId], references: [id])
+  tournament   Tournament  @relation(fields: [tournamentId], references: [id])
+}
+
+enum Role {
+  USER
+  STAFF
+  ADMIN
+}
+
+enum TournamentStatus {
+  DRAFT
+  REGISTRATION
+  LOCKED
+  CHECKIN
+  LIVE
+  FINISHED
+  ARCHIVED
+}
+
+enum QStatus {
+  OPEN
+  ANSWERED
+  CLOSED
+}
+
+enum MatchStatus {
+  PENDING
+  READY
+  LIVE
+  DONE
+  VOID
+}

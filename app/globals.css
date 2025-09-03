@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+html, body { height: 100%; }
+
+.prose :where(a):not(:where([class~="not-prose"] *)) {
+  color: theme(colors.cyber.neon);
+}
+
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-thumb { background: #1f1f2b; border-radius: 999px; }
