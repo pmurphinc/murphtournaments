@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
-async function upsertTeam(formData: FormData, headers: Headers) {
+async function upsertTeam(formData: FormData): Promise<void> {
   "use server";
   const session = await auth();
   if (!session?.user) throw new Error("Sign in required");
