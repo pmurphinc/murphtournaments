@@ -13,7 +13,7 @@ async function upsertTeam(formData: FormData): Promise<void> {
   "use server";
   const session = await auth();
   if (!session?.user) throw new Error("Sign in required");
-  const ip = getClientIp(headers);
+  const ip = getClientIp(Headers);
   const rl = rateLimit(ip, "signup", 10, 60000);
   if (!rl.ok) throw new Error("Rate limit exceeded. Try again in a minute.");
 
