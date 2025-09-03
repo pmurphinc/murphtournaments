@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { teamSignupSchema } from "@/lib/validators";
@@ -13,7 +14,7 @@ async function upsertTeam(formData: FormData): Promise<void> {
   "use server";
   const session = await auth();
   if (!session?.user) throw new Error("Sign in required");
-  const ip = getClientIp(headers);
+  const ip = getClientIp(headers());
   const rl = rateLimit(ip, "signup", 10, 60000);
   if (!rl.ok) throw new Error("Rate limit exceeded. Try again in a minute.");
 
