@@ -5,22 +5,45 @@ import { postDiscordWebhook } from "@/lib/discord";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
-async function addAnswer(formData: FormData) {
+import { revalidatePath } from "next/cache";
+// (you already have these imports in your file)
+import { prisma } from "@/lib/prisma";
+import { auth, requireRole } from "@/lib/auth";
+import { postDiscordWebhook } from "@/lib/discord";
+
+async function addAnswer(formData: FormData): Promise<void> {
   "use server";
+
   const session = await auth();
-  if (!session?.user) throw new Error("Sign in required");
-  const qid = formData.get("questionId") as string;
-  const body = formData.get("body") as string;
+  if (!session) throw new Error("Sign in required");
+
+  const qid = String(formData.get("questionId") ?? "");
+  const body = String(formData.get("body") ?? "");
   const official = formData.get("official") === "on";
+
+  // Only staff can mark an answer as Official
   if (official) await requireRole("STAFF");
 
-  const a = await prisma.answer.create({ data: { questionId: qid, authorId: (session.user as any).id, body, official } });
+  const a = await prisma.answer.create({
+    data: {
+      questionId: qid,
+      authorId: (session.user as any).id,
+      body,
+      official,
+    },
+  });
 
   if (official) {
-    await prisma.question.update({ where: { id: qid }, data: { status: "ANSWERED", officialAnswerId: a.id } });
-    await postDiscordWebhook(`📢 **Official Answer** posted: https://your-vercel-url/qna/${qid}`);
+    await prisma.question.update({
+      where: { id: qid },
+      data: { status: "ANSWERED", officialAnswerId: a.id },
+    });
+    // Optional: send a Discord notice
+    await postDiscordWebhook(`**Official Answer** posted: /qna/${qid}`);
   }
-  return { ok: true };
+
+  // IMPORTANT: return nothing (void). Revalidate the page so the new answer shows.
+  revalidatePath(`/qna/${qid}`);
 }
 
 export default async function ThreadPage({ params }: { params: { id: string } }) {
