@@ -1,12 +1,20 @@
 // app/layout.tsx
 import "./globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { SystemBar } from "@/components/SystemBar";
 import Navbar from "@/components/Nav"; // <-- new responsive navbar
 
 export const metadata: Metadata = {
   title: "Murph Tournaments",
   description: "Frictionless sign-ups, Q&A, and live ops for THE FINALS.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // optional:
+  // maximumScale: 1,
+  // viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
