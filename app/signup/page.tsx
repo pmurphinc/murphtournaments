@@ -155,7 +155,7 @@ export default async function SignUpPage() {
           <div>
             <Label htmlFor="embark1">Embark ID 1 (Captain)</Label>
             <Input id="embark1" name="embark1" required />
-            <p className="text-xs opacity-60 mt-1">12-digit Embark ID from your in-game profile.</p>
+            <p className="text-xs opacity-60 mt-1">Embark ID from your in-game profile.</p>
           </div>
           <div>
             <Label htmlFor="embark2">Embark ID 2</Label>
