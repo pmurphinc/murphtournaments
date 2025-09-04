@@ -1,18 +1,19 @@
+// components/Nav.tsx
 "use client";
 
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const NAV = [
+const LINKS = [
   { href: "/", label: "Dashboard" },
-  { href: "/signup", label: "Sign-Up" },
+  { href: "/signup", label: "Sign-Up" }, // hyphen prevents ugly wrap
   { href: "/qna", label: "Q&A" },
   { href: "/schedule", label: "Schedule" },
   { href: "/rules", label: "Rules" },
 ];
 
-export default function Navbar() {
+export default function Nav() {
   const [open, setOpen] = React.useState(false);
   const pathname = usePathname();
 
@@ -31,15 +32,17 @@ export default function Navbar() {
 
         {/* Desktop links */}
         <nav className="hidden items-center gap-6 md:flex">
-          {NAV.map((item) => (
+          {LINKS.map((it) => (
             <Link
-              key={item.href}
-              href={item.href}
+              key={it.href}
+              href={it.href}
               className={`text-sm transition-colors ${
-                pathname === item.href ? "text-white" : "text-zinc-300 hover:text-white"
+                pathname === it.href
+                  ? "text-white"
+                  : "text-zinc-300 hover:text-white"
               }`}
             >
-              {item.label}
+              {it.label}
             </Link>
           ))}
           <Link
@@ -72,16 +75,18 @@ export default function Navbar() {
       {open && (
         <div className="md:hidden border-t border-zinc-800/60 bg-black/95">
           <nav className="mx-auto grid max-w-6xl gap-2 px-4 py-3">
-            {NAV.map((item) => (
+            {LINKS.map((it) => (
               <Link
-                key={item.href}
-                href={item.href}
+                key={it.href}
+                href={it.href}
                 onClick={() => setOpen(false)}
                 className={`block rounded-lg px-3 py-2 text-base ${
-                  pathname === item.href ? "bg-zinc-800 text-white" : "text-zinc-200 hover:bg-zinc-800/60"
+                  pathname === it.href
+                    ? "bg-zinc-800 text-white"
+                    : "text-zinc-200 hover:bg-zinc-800/60"
                 }`}
               >
-                {item.label}
+                {it.label}
               </Link>
             ))}
             <Link
