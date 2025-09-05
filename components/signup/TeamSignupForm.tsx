@@ -314,7 +314,7 @@ export default function TeamSignupForm({
           onChange={(e) => setAgree(e.target.checked)}
           required
         />
-        <Label htmlFor="agree">I agree to the rules and format.</Label>
+        <Label htmlFor="agree">I agree to the rules and format described in the discord post.</Label>
       </div>
 
       {/* Turnstile (hidden stub to match your current server code) */}
