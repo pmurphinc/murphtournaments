@@ -1,5 +1,7 @@
 // app/signup/page.tsx
 export const dynamic = "force-dynamic";
+
+import TeamSignupForm from "@/components/signup/TeamSignupForm";
 import { headers } from "next/headers";
 import { auth, signIn } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -8,12 +10,12 @@ import { verifyTurnstile } from "@/lib/turnstile";
 import { rateLimit } from "@/lib/rateLimit";
 import { getClientIp } from "@/lib/utils";
 import { createClient } from "@/lib/supabase";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
+// ----- server action -----
 async function upsertTeam(formData: FormData): Promise<void> {
   "use server";
+
   const session = await auth();
   if (!session?.user) throw new Error("Sign in required");
 
@@ -24,7 +26,7 @@ async function upsertTeam(formData: FormData): Promise<void> {
   const raw = {
     tournamentId: formData.get("tournamentId") as string,
     teamName: formData.get("teamName") as string,
-    // still send captainDiscord so your existing schema/backend keeps working, test
+    // still send this so your existing schema/backend keeps receiving it
     captainDiscord: formData.get("captainDiscord") as string,
     embark1: formData.get("embark1") as string,
     embark2: formData.get("embark2") as string,
@@ -33,7 +35,7 @@ async function upsertTeam(formData: FormData): Promise<void> {
     platform: formData.get("platform") as "PC" | "Xbox" | "PlayStation",
     region: formData.get("region") as "NA" | "EU" | "APAC",
     agree: formData.get("agree") === "on",
-    turnstileToken: (formData.get("cf-turnstile-response") as string) || undefined
+    turnstileToken: (formData.get("cf-turnstile-response") as string) || undefined,
   };
 
   const parsed = teamSignupSchema.safeParse(raw);
@@ -44,9 +46,9 @@ async function upsertTeam(formData: FormData): Promise<void> {
   const ok = await verifyTurnstile(parsed.data.turnstileToken);
   if (!ok) throw new Error("Turnstile verification failed");
 
-  // Captain is the signed-in user
+  // Captain = the signed-in Discord user
   const captainUser = await prisma.user.findUnique({
-    where: { discordId: (session.user as any).discordId }
+    where: { discordId: (session.user as any).discordId },
   });
   if (!captainUser) throw new Error("User not found");
 
@@ -54,7 +56,7 @@ async function upsertTeam(formData: FormData): Promise<void> {
     where: { name: parsed.data.teamName },
     update: {
       tournamentId: parsed.data.tournamentId,
-      notes: `${parsed.data.platform}/${parsed.data.region}`
+      notes: `${parsed.data.platform}/${parsed.data.region}`,
     },
     create: {
       name: parsed.data.teamName,
@@ -62,30 +64,32 @@ async function upsertTeam(formData: FormData): Promise<void> {
       captainId: captainUser.id,
       members: {
         create: [
-          // We still store the captain's Discord display name against Embark ID 1
+          // store captain’s readable Discord name alongside Embark ID 1
           { displayName: parsed.data.captainDiscord, embarkId: parsed.data.embark1 },
           { displayName: "Starter 2", embarkId: parsed.data.embark2 },
           { displayName: "Starter 3", embarkId: parsed.data.embark3 },
           ...(parsed.data.embarkSub
             ? [{ displayName: "Sub", embarkId: parsed.data.embarkSub, isSub: true }]
-            : [])
-        ]
-      }
-    }
+            : []),
+        ],
+      },
+    },
   });
 
+  // Realtime broadcast (keeps your existing behavior)
   const supa = createClient();
   await supa
     .channel(`realtime:tournament:${team.tournamentId}:signups`)
     .send({ type: "broadcast", event: "signup", payload: { teamName: team.name } });
 
-  // Successful server action returns void (letting the page revalidate/refresh)
+  // returning void satisfies Next.js form action typing
 }
 
+// ----- page -----
 export default async function SignUpPage() {
   const session = await auth();
 
-  // Gate the form entirely behind auth
+  // If not signed in, show only the Discord sign-in button
   if (!session?.user) {
     async function signInWithDiscord(): Promise<void> {
       "use server";
@@ -106,114 +110,37 @@ export default async function SignUpPage() {
     );
   }
 
+  // Signed-in flow
   const tournaments = await prisma.tournament.findMany({
-    orderBy: { startsAt: "desc" }
+    orderBy: { startsAt: "desc" }, // matches your schema (avoid 'createdAt')
   });
 
   const captainDiscordName =
-    // prefer the user’s Discord display/global name, fall back to id if needed
     ((session.user as any).name as string) ??
     ((session.user as any).discordId as string) ??
     "";
+
+  // key drafts per-user (user id preferred; fallback to discord id)
+  const userKey =
+    ((session.user as any).id as string) ??
+    ((session.user as any).discordId as string);
 
   return (
     <div className="max-w-2xl space-y-6">
       <h1 className="text-2xl">Team Sign-Up</h1>
 
-      {/* Show who’s signed in, and carry that value through as a hidden field */}
+      {/* show who is signed in; carry value via hidden input in the form */}
       <div className="rounded-md border border-zinc-700 bg-black/40 p-3 text-sm">
         <span className="opacity-70">Signed in as:</span>{" "}
         <span className="font-semibold">{captainDiscordName}</span>
       </div>
 
-      <form action={upsertTeam} className="space-y-4" aria-describedby="signup-help">
-        <p id="signup-help" className="sr-only">
-          All fields required unless marked optional. Enter Embark IDs for 3 starters and (optionally) a sub.
-        </p>
-
-        <label htmlFor="tournamentId" className="sr-only">Tournament</label>
-        <select
-          id="tournamentId"
-          name="tournamentId"
-          className="w-full h-9 rounded-md border border-zinc-700 bg-black/50 px-2"
-        >
-          {tournaments.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-
-        <div>
-          <Label htmlFor="teamName">Team name</Label>
-          <Input id="teamName" name="teamName" minLength={3} required />
-        </div>
-
-        {/* Hidden field so backend still receives captainDiscord */}
-        <input type="hidden" name="captainDiscord" value={captainDiscordName} />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <Label htmlFor="embark1">Embark ID 1 (Captain)</Label>
-            <Input id="embark1" name="embark1" required />
-            <p className="text-xs opacity-60 mt-1">Embark ID from your in-game profile.</p>
-          </div>
-          <div>
-            <Label htmlFor="embark2">Embark ID 2</Label>
-            <Input id="embark2" name="embark2" required />
-          </div>
-          <div>
-            <Label htmlFor="embark3">Embark ID 3</Label>
-            <Input id="embark3" name="embark3" required />
-          </div>
-          <div>
-            <Label htmlFor="embarkSub">Embark ID (Sub) — optional</Label>
-            <Input id="embarkSub" name="embarkSub" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label htmlFor="platform">Platform</Label>
-            <select
-              id="platform"
-              name="platform"
-              className="w-full h-9 rounded-md border border-zinc-700 bg-black/50 px-2"
-            >
-              <option>PC</option>
-              <option>Xbox</option>
-              <option>PlayStation</option>
-            </select>
-          </div>
-          <div>
-            <Label htmlFor="region">Region</Label>
-            <select
-              id="region"
-              name="region"
-              className="w-full h-9 rounded-md border border-zinc-700 bg-black/50 px-2"
-            >
-              <option>NA</option>
-              <option>EU</option>
-              <option>APAC</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <input type="checkbox" id="agree" name="agree" required />
-          <Label htmlFor="agree">I agree to the rules and format.</Label>
-        </div>
-
-        {/* Turnstile stub (keeps your existing flow) */}
-        <div className="border border-zinc-700 rounded p-2 text-xs opacity-70">
-          Anti-spam active (Turnstile)
-          <input type="hidden" name="cf-turnstile-response" value="stub-ok" />
-        </div>
-
-        <Button type="submit" className="w-full" aria-live="polite">
-          Submit
-        </Button>
-      </form>
+      <TeamSignupForm
+        tournaments={tournaments.map((t) => ({ id: t.id, name: t.name }))}
+        captainDiscordName={captainDiscordName}
+        userKey={userKey}
+        action={upsertTeam}
+      />
     </div>
   );
 }
