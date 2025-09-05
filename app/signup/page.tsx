@@ -24,7 +24,7 @@ async function upsertTeam(formData: FormData): Promise<void> {
   const raw = {
     tournamentId: formData.get("tournamentId") as string,
     teamName: formData.get("teamName") as string,
-    // still send captainDiscord so your existing schema/backend keeps working
+    // still send captainDiscord so your existing schema/backend keeps working, test
     captainDiscord: formData.get("captainDiscord") as string,
     embark1: formData.get("embark1") as string,
     embark2: formData.get("embark2") as string,
