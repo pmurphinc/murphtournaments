@@ -14,6 +14,10 @@ type Props = {
   action: (formData: FormData) => void | Promise<void>; // server action passed from the page
 };
 
+// Optional per-Embark choices
+type PlatformOpt = "" | "PC" | "Xbox" | "PlayStation";
+type RegionOpt = "" | "NA" | "EU" | "APAC";
+
 export default function TeamSignupForm({
   tournaments,
   captainDiscordName,
@@ -23,12 +27,28 @@ export default function TeamSignupForm({
   // ----- state -----
   const [tournamentId, setTournamentId] = React.useState(tournaments[0]?.id ?? "");
   const [teamName, setTeamName] = React.useState("");
+
   const [embark1, setEmbark1] = React.useState("");
   const [embark2, setEmbark2] = React.useState("");
   const [embark3, setEmbark3] = React.useState("");
   const [embarkSub, setEmbarkSub] = React.useState("");
-  const [platform, setPlatform] = React.useState<"PC" | "Xbox" | "PlayStation">("PC");
-  const [region, setRegion] = React.useState<"NA" | "EU" | "APAC">("NA");
+
+  // NEW: optional per-embark platform/region
+  const [platform1, setPlatform1] = React.useState<PlatformOpt>("");
+  const [platform2, setPlatform2] = React.useState<PlatformOpt>("");
+  const [platform3, setPlatform3] = React.useState<PlatformOpt>("");
+  const [platformSub, setPlatformSub] = React.useState<PlatformOpt>("");
+
+  const [region1, setRegion1] = React.useState<RegionOpt>("");
+  const [region2, setRegion2] = React.useState<RegionOpt>("");
+  const [region3, setRegion3] = React.useState<RegionOpt>("");
+  const [regionSub, setRegionSub] = React.useState<RegionOpt>("");
+
+  // Team-level platform/region are still required by your current backend.
+  // We provide safe hidden defaults to avoid breaking the server action.
+  const TEAM_DEFAULT_PLATFORM: Exclude<PlatformOpt, ""> = "PC";
+  const TEAM_DEFAULT_REGION: Exclude<RegionOpt, ""> = "NA";
+
   const [agree, setAgree] = React.useState(false);
 
   // Per-user, per-tournament key
@@ -43,13 +63,24 @@ export default function TeamSignupForm({
       const raw = localStorage.getItem(draftKey);
       if (!raw) return;
       const d = JSON.parse(raw);
+
       setTeamName(d.teamName ?? "");
+
       setEmbark1(d.embark1 ?? "");
       setEmbark2(d.embark2 ?? "");
       setEmbark3(d.embark3 ?? "");
       setEmbarkSub(d.embarkSub ?? "");
-      setPlatform((d.platform as typeof platform) ?? "PC");
-      setRegion((d.region as typeof region) ?? "NA");
+
+      setPlatform1((d.platform1 as PlatformOpt) ?? "");
+      setPlatform2((d.platform2 as PlatformOpt) ?? "");
+      setPlatform3((d.platform3 as PlatformOpt) ?? "");
+      setPlatformSub((d.platformSub as PlatformOpt) ?? "");
+
+      setRegion1((d.region1 as RegionOpt) ?? "");
+      setRegion2((d.region2 as RegionOpt) ?? "");
+      setRegion3((d.region3 as RegionOpt) ?? "");
+      setRegionSub((d.regionSub as RegionOpt) ?? "");
+
       setAgree(!!d.agree);
     } catch {
       // ignore parse errors
@@ -64,8 +95,14 @@ export default function TeamSignupForm({
       embark2,
       embark3,
       embarkSub,
-      platform,
-      region,
+      platform1,
+      platform2,
+      platform3,
+      platformSub,
+      region1,
+      region2,
+      region3,
+      regionSub,
       agree,
     };
     const id = setTimeout(() => {
@@ -76,13 +113,84 @@ export default function TeamSignupForm({
       }
     }, 400);
     return () => clearTimeout(id);
-  }, [draftKey, teamName, embark1, embark2, embark3, embarkSub, platform, region, agree]);
+  }, [
+    draftKey,
+    teamName,
+    embark1,
+    embark2,
+    embark3,
+    embarkSub,
+    platform1,
+    platform2,
+    platform3,
+    platformSub,
+    region1,
+    region2,
+    region3,
+    regionSub,
+    agree,
+  ]);
 
   // clear draft after submit fires
   function handleSubmitted() {
     try {
       localStorage.removeItem(draftKey);
     } catch {}
+  }
+
+  // Small helper for per-embark optional selects
+  function PlatformSelect({
+    id,
+    name,
+    value,
+    onChange,
+  }: {
+    id: string;
+    name: string;
+    value: PlatformOpt;
+    onChange: (v: PlatformOpt) => void;
+  }) {
+    return (
+      <select
+        id={id}
+        name={name}
+        value={value}
+        onChange={(e) => onChange(e.target.value as PlatformOpt)}
+        className="w-full h-9 rounded-md border border-zinc-700 bg-black/50 px-2"
+      >
+        <option value="">— Platform (optional) —</option>
+        <option value="PC">PC</option>
+        <option value="Xbox">Xbox</option>
+        <option value="PlayStation">PlayStation</option>
+      </select>
+    );
+  }
+
+  function RegionSelect({
+    id,
+    name,
+    value,
+    onChange,
+  }: {
+    id: string;
+    name: string;
+    value: RegionOpt;
+    onChange: (v: RegionOpt) => void;
+  }) {
+    return (
+      <select
+        id={id}
+        name={name}
+        value={value}
+        onChange={(e) => onChange(e.target.value as RegionOpt)}
+        className="w-full h-9 rounded-md border border-zinc-700 bg-black/50 px-2"
+      >
+        <option value="">— Region (optional) —</option>
+        <option value="NA">NA</option>
+        <option value="EU">EU</option>
+        <option value="APAC">APAC</option>
+      </select>
+    );
   }
 
   return (
@@ -92,7 +200,9 @@ export default function TeamSignupForm({
       </p>
 
       {/* Tournament */}
-      <label htmlFor="tournamentId" className="sr-only">Tournament</label>
+      <label htmlFor="tournamentId" className="sr-only">
+        Tournament
+      </label>
       <select
         id="tournamentId"
         name="tournamentId"
@@ -123,9 +233,14 @@ export default function TeamSignupForm({
       {/* Captain Discord: hidden — pulled from session */}
       <input type="hidden" name="captainDiscord" value={captainDiscordName} />
 
-      {/* Embark IDs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
+      {/* Hidden team-level defaults to satisfy current backend */}
+      <input type="hidden" name="platform" value={TEAM_DEFAULT_PLATFORM} />
+      <input type="hidden" name="region" value={TEAM_DEFAULT_REGION} />
+
+      {/* Embark IDs + optional per-embark Platform/Region */}
+      <div className="grid grid-cols-1 gap-4">
+        {/* Row 1 */}
+        <div className="rounded-md border border-zinc-800 p-3">
           <Label htmlFor="embark1">Embark ID 1 (Captain)</Label>
           <Input
             id="embark1"
@@ -134,9 +249,15 @@ export default function TeamSignupForm({
             value={embark1}
             onChange={(e) => setEmbark1(e.target.value)}
           />
-          <p className="text-xs opacity-60 mt-1">12-digit Embark ID from your in-game profile.</p>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <PlatformSelect id="platform1" name="platform1" value={platform1} onChange={setPlatform1} />
+            <RegionSelect id="region1" name="region1" value={region1} onChange={setRegion1} />
+          </div>
+          <p className="text-xs opacity-60 mt-2">Optional per-player Platform/Region; defaults to team settings.</p>
         </div>
-        <div>
+
+        {/* Row 2 */}
+        <div className="rounded-md border border-zinc-800 p-3">
           <Label htmlFor="embark2">Embark ID 2</Label>
           <Input
             id="embark2"
@@ -145,8 +266,14 @@ export default function TeamSignupForm({
             value={embark2}
             onChange={(e) => setEmbark2(e.target.value)}
           />
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <PlatformSelect id="platform2" name="platform2" value={platform2} onChange={setPlatform2} />
+            <RegionSelect id="region2" name="region2" value={region2} onChange={setRegion2} />
+          </div>
         </div>
-        <div>
+
+        {/* Row 3 */}
+        <div className="rounded-md border border-zinc-800 p-3">
           <Label htmlFor="embark3">Embark ID 3</Label>
           <Input
             id="embark3"
@@ -155,8 +282,14 @@ export default function TeamSignupForm({
             value={embark3}
             onChange={(e) => setEmbark3(e.target.value)}
           />
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <PlatformSelect id="platform3" name="platform3" value={platform3} onChange={setPlatform3} />
+            <RegionSelect id="region3" name="region3" value={region3} onChange={setRegion3} />
+          </div>
         </div>
-        <div>
+
+        {/* Row Sub (optional) */}
+        <div className="rounded-md border border-zinc-800 p-3">
           <Label htmlFor="embarkSub">Embark ID (Sub) — optional</Label>
           <Input
             id="embarkSub"
@@ -164,38 +297,10 @@ export default function TeamSignupForm({
             value={embarkSub}
             onChange={(e) => setEmbarkSub(e.target.value)}
           />
-        </div>
-      </div>
-
-      {/* Platform & Region */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label htmlFor="platform">Platform</Label>
-          <select
-            id="platform"
-            name="platform"
-            value={platform}
-            onChange={(e) => setPlatform(e.target.value as typeof platform)}
-            className="w-full h-9 rounded-md border border-zinc-700 bg-black/50 px-2"
-          >
-            <option value="PC">PC</option>
-            <option value="Xbox">Xbox</option>
-            <option value="PlayStation">PlayStation</option>
-          </select>
-        </div>
-        <div>
-          <Label htmlFor="region">Region</Label>
-          <select
-            id="region"
-            name="region"
-            value={region}
-            onChange={(e) => setRegion(e.target.value as typeof region)}
-            className="w-full h-9 rounded-md border border-zinc-700 bg-black/50 px-2"
-          >
-            <option value="NA">NA</option>
-            <option value="EU">EU</option>
-            <option value="APAC">APAC</option>
-          </select>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <PlatformSelect id="platformSub" name="platformSub" value={platformSub} onChange={setPlatformSub} />
+            <RegionSelect id="regionSub" name="regionSub" value={regionSub} onChange={setRegionSub} />
+          </div>
         </div>
       </div>
 
