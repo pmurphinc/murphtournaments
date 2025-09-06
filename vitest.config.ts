@@ -1,4 +1,14 @@
+// vitest.config.ts
 import { defineConfig } from "vitest/config";
+import tsconfigPaths from "vite-tsconfig-paths";
+
 export default defineConfig({
-  test: { environment: "node", include: ["tests/unit/**/*.test.ts"] }
+  plugins: [tsconfigPaths()],
+  test: {
+    // pick one depending on what you're testing:
+    environment: "node", // for utils like rateLimit
+    // environment: "jsdom", // for React components
+    globals: true,
+    include: ["tests/**/*.{test,spec}.{ts,tsx}"],
+  },
 });
