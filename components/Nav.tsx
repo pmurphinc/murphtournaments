@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import AuthButton from "@/components/AuthButton";
 
@@ -21,10 +22,15 @@ export default function Nav() {
     <header className="sticky top-0 z-50 border-b border-zinc-800/60 bg-black/70 backdrop-blur supports-[backdrop-filter]:bg-black/40">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
         {/* Brand */}
-        <Link href="/" className="flex items-center gap-2">
-          <div className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-cyan-400 to-violet-500 font-bold text-black">
-            MT
-          </div>
+        <Link href="/" className="flex items-center gap-2 hover:opacity-90">
+          <Image
+            src="/logo.svg"
+            alt="Murph Tournaments"
+            width={28}
+            height={28}
+            priority
+            className="h-7 w-7"
+          />
           <span className="font-mono text-lg tracking-tight whitespace-nowrap">
             Murph Tournaments
           </span>
@@ -59,7 +65,13 @@ export default function Nav() {
           onClick={() => setOpen((s) => !s)}
           className="inline-flex items-center justify-center rounded-md p-2.5 text-zinc-200 hover:bg-zinc-800/60 focus:outline-none focus:ring-2 focus:ring-cyan-500 md:hidden"
         >
-          <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+          <svg
+            className="h-6 w-6"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
             <path
               strokeWidth="2"
               strokeLinecap="round"
@@ -71,7 +83,10 @@ export default function Nav() {
 
       {/* Mobile panel */}
       {open && (
-        <div id="mobile-menu" className="md:hidden border-t border-zinc-800/60 bg-black/95">
+        <div
+          id="mobile-menu"
+          className="md:hidden border-t border-zinc-800/60 bg-black/95"
+        >
           <nav className="mx-auto grid max-w-6xl gap-2 px-4 py-3">
             {LINKS.map((it) => (
               <Link
