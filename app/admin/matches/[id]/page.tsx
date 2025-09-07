@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import AdminMatchForm from '../../../../components/admin/AdminMatchForm';
+import AdminMatchForm from '../../../../components/Admin/AdminMatchForm';
 // ----- Update server action -----
 async function updateMatch(formData: FormData): Promise<void> {
   "use server";
