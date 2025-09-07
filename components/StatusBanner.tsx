@@ -113,6 +113,21 @@ export function StatusBanner({ tournament }: Props) {
   }, []);
 
   // Use liveTournament for all status logic
+  // Always call hooks at the top level
+  const dbStart = useMemo(() => liveTournament?.startsAt ? new Date(liveTournament.startsAt) : null, [liveTournament?.startsAt]);
+  const start = useMemo(() => dbStart ?? new Date(FALLBACK_START_ISO), [dbStart]);
+  const explicitCheckIn = useMemo(() => liveTournament?.checkInOpensAt ? new Date(liveTournament.checkInOpensAt) : null, [liveTournament?.checkInOpensAt]);
+  const computedCheckIn = useMemo(() => new Date(start.getTime() - CHECKIN_MINUTES_BEFORE * 60_000), [start]);
+  const checkInAt = useMemo(() => explicitCheckIn ?? computedCheckIn, [explicitCheckIn, computedCheckIn]);
+
+  const status = useMemo<TournyStatus>(() => {
+    if (!liveTournament) return "DRAFT";
+    if (now >= start) return "LIVE";
+    if (now >= checkInAt) return "CHECKIN";
+    return (liveTournament?.status ?? "DRAFT") as TournyStatus;
+  }, [now, start, checkInAt, liveTournament]);
+
+  // Early return after hooks
   if (!liveTournament) {
     return (
       <section
@@ -126,25 +141,7 @@ export function StatusBanner({ tournament }: Props) {
     );
   }
 
-  const dbStart = liveTournament?.startsAt ? new Date(liveTournament.startsAt) : null;
-  const start = dbStart ?? new Date(FALLBACK_START_ISO);
-  const explicitCheckIn = liveTournament?.checkInOpensAt
-    ? new Date(liveTournament.checkInOpensAt)
-    : null;
-  const computedCheckIn = new Date(
-    start.getTime() - CHECKIN_MINUTES_BEFORE * 60_000
-  );
-  const checkInAt = explicitCheckIn ?? computedCheckIn;
-
-  const status = useMemo<TournyStatus>(() => {
-    if (now >= start) return "LIVE";
-    if (now >= checkInAt) return "CHECKIN";
-    return (liveTournament?.status ?? "DRAFT") as TournyStatus;
-  }, [now, start, checkInAt, liveTournament?.status]);
-
-  const leftLabel =
-    status === "LOCKED" ? "LOCKED — REGISTRATION FULL" : status;
-
+  const leftLabel = status === "LOCKED" ? "LOCKED — REGISTRATION FULL" : status;
   const whenPT = fmtTZ(start, "America/Los_Angeles", "PT");
   const whenET = fmtTZ(start, "America/New_York", "ET");
   const cd = countdown(start);
