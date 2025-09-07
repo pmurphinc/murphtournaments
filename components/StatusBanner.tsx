@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase";
 import { LiveDot } from "./LiveDot";
 
 type TournyStatus =
@@ -64,30 +65,54 @@ function countdown(to: Date) {
 }
 
 export function StatusBanner({ tournament }: Props) {
-  // Parse times
-  const dbStart = tournament?.startsAt ? new Date(tournament.startsAt) : null;
-  const start = dbStart ?? new Date(FALLBACK_START_ISO);
+  const [liveTournament, setLiveTournament] = useState(tournament);
+  const [now, setNow] = useState<Date>(new Date());
 
-  const explicitCheckIn = tournament?.checkInOpensAt
-    ? new Date(tournament.checkInOpensAt)
+  useEffect(() => {
+    const supabase = createClient();
+    let mounted = true;
+
+    async function fetchStatus() {
+      if (!tournament?.name) return;
+      const { data, error } = await supabase
+        .from("Tournament")
+        .select("status,startsAt,checkInOpensAt,name")
+        .eq("name", tournament.name)
+        .single();
+      if (!error && data && mounted) {
+        setLiveTournament((prev) => ({
+          ...prev,
+          ...data,
+        }));
+      }
+    }
+
+    fetchStatus(); // initial fetch
+    const pollId = setInterval(fetchStatus, 30_000);
+    const timeId = setInterval(() => setNow(new Date()), 30_000);
+    return () => {
+      mounted = false;
+      clearInterval(pollId);
+      clearInterval(timeId);
+    };
+  }, [tournament?.name]);
+
+  // Use liveTournament for all status logic
+  const dbStart = liveTournament?.startsAt ? new Date(liveTournament.startsAt) : null;
+  const start = dbStart ?? new Date(FALLBACK_START_ISO);
+  const explicitCheckIn = liveTournament?.checkInOpensAt
+    ? new Date(liveTournament.checkInOpensAt)
     : null;
   const computedCheckIn = new Date(
     start.getTime() - CHECKIN_MINUTES_BEFORE * 60_000
   );
   const checkInAt = explicitCheckIn ?? computedCheckIn;
 
-  const [now, setNow] = useState<Date>(new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30_000);
-    return () => clearInterval(id);
-  }, []);
-
-  // Time-based status with DB as baseline
   const status = useMemo<TournyStatus>(() => {
     if (now >= start) return "LIVE";
     if (now >= checkInAt) return "CHECKIN";
-    return (tournament?.status ?? "DRAFT") as TournyStatus;
-  }, [now, start, checkInAt, tournament?.status]);
+    return (liveTournament?.status ?? "DRAFT") as TournyStatus;
+  }, [now, start, checkInAt, liveTournament?.status]);
 
   const leftLabel =
     status === "LOCKED" ? "LOCKED — REGISTRATION FULL" : status;
@@ -112,7 +137,7 @@ export function StatusBanner({ tournament }: Props) {
 
       <div className="flex flex-col md:items-end text-sm">
         <div className="opacity-90">
-          {tournament?.name ?? "Upcoming Tournament"}
+          {liveTournament?.name ?? "Upcoming Tournament"}
         </div>
         <div className="opacity-90">Starts {whenPT} &nbsp;/&nbsp; {whenET}</div>
         <div className="text-xs opacity-70">
