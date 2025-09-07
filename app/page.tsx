@@ -27,10 +27,11 @@ export default async function DashboardPage() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card><CardHeader><CardTitle>Announcements</CardTitle></CardHeader><CardContent><ul className="space-y-2">
+          <li className="text-sm font-semibold text-yellow-300">⚠️ This website is a work in progress. Features and data may change at any time.</li>
           <li className="text-sm opacity-90">Check-ins open at 5:30 PM.</li>
           <li className="text-sm opacity-90">Hosts online: Jacob, Megatron, TRAV, Murph.</li>
         </ul></CardContent></Card>
-        </div>
+      </div>
     </div>
   );
 }
