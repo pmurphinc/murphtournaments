@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+export const revalidate = 30; 
 import { StatusBanner } from "@/components/StatusBanner";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase";
