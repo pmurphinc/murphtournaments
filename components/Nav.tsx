@@ -8,7 +8,6 @@ import AuthButton from "@/components/AuthButton";
 
 const LINKS = [
   { href: "/", label: "Dashboard" },
-  { href: "/signup", label: "Sign-Up" },
   { href: "/qna", label: "Q&A" },
   { href: "/schedule", label: "Schedule" },
   { href: "/rules", label: "Rules" },

@@ -85,22 +85,22 @@ export default function AuthButton() {
           tabIndex={-1}
           className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-md border border-zinc-700 bg-zinc-900 shadow-lg"
         >
-          <a
-            role="menuitem"
-            href="/dashboard"
-            className="block px-3 py-2 text-sm text-zinc-100 hover:bg-zinc-800"
-            onClick={() => setOpen(false)}
-          >
-            Dashboard
-          </a>
-          <div className="my-1 h-px bg-zinc-800" />
-          <button
-            role="menuitem"
-            onClick={() => signOut({ callbackUrl: '/' })}
-            className="block w-full px-3 py-2 text-left text-sm text-zinc-100 hover:bg-zinc-800"
-          >
-            Sign out
-          </button>
+            <a
+              role="menuitem"
+              href="/account"
+              className="block px-3 py-2 text-sm text-zinc-100 hover:bg-zinc-800"
+              onClick={() => setOpen(false)}
+            >
+              User Options
+            </a>
+            <div className="my-1 h-px bg-zinc-800" />
+            <button
+              role="menuitem"
+              onClick={() => signOut({ callbackUrl: '/' })}
+              className="block w-full px-3 py-2 text-left text-sm text-zinc-100 hover:bg-zinc-800"
+            >
+              Sign out
+            </button>
         </div>
       )}
     </div>
