@@ -73,30 +73,32 @@ export function StatusBanner({ tournament }: Props) {
     let mounted = true;
 
     async function fetchTournament() {
-      // 1. Try to get the next future tournament (startsAt > now)
+      // 1. Try to get the next future tournament (startsAt > now, not FINISHED/ARCHIVED)
       const nowIso = new Date().toISOString();
       let { data, error } = await supabase
         .from("Tournament")
         .select("status,startsAt,checkInOpensAt,name")
         .gt("startsAt", nowIso)
+        .not("status", "in", ["FINISHED", "ARCHIVED"])
         .order("startsAt", { ascending: true })
         .limit(1);
 
       let tournament = data?.[0];
 
-      // 2. If no future tournament, get the most recent past tournament
+      // 2. If no future tournament, get the most recent past tournament that is not FINISHED/ARCHIVED
       if (!tournament) {
         const { data: pastData, error: pastError } = await supabase
           .from("Tournament")
           .select("status,startsAt,checkInOpensAt,name")
           .lte("startsAt", nowIso)
+          .not("status", "in", ["FINISHED", "ARCHIVED"])
           .order("startsAt", { ascending: false })
           .limit(1);
         tournament = pastData?.[0];
       }
 
-      if (mounted && tournament) {
-        setLiveTournament(tournament);
+      if (mounted) {
+        setLiveTournament(tournament ?? null);
       }
     }
 
@@ -111,6 +113,19 @@ export function StatusBanner({ tournament }: Props) {
   }, []);
 
   // Use liveTournament for all status logic
+  if (!liveTournament) {
+    return (
+      <section
+        role="status"
+        aria-live="polite"
+        className="border px-4 py-3 rounded-lg shadow-glow-gold flex flex-col items-center justify-center gap-3 bg-zinc-900 border-zinc-700"
+      >
+        <div className="text-xl font-bold tracking-widest text-zinc-300">No upcoming tournaments</div>
+        <div className="text-sm opacity-70">Check back soon for new events.</div>
+      </section>
+    );
+  }
+
   const dbStart = liveTournament?.startsAt ? new Date(liveTournament.startsAt) : null;
   const start = dbStart ?? new Date(FALLBACK_START_ISO);
   const explicitCheckIn = liveTournament?.checkInOpensAt
