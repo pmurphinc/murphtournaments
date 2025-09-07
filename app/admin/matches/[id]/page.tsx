@@ -15,7 +15,7 @@ async function updateMatch(formData: FormData): Promise<void> {
   const tournamentId = String(formData.get("tournamentId") || "");
   const teamAId = String(formData.get("teamAId") || "");
   const teamBId = String(formData.get("teamBId") || "");
-  const round = parseInt(String(formData.get("round") || "1"), 10);s
+  const round = parseInt(String(formData.get("round") || "1"), 10);
   const bestOf = parseInt(String(formData.get("bestOf") || "1"), 10);
   const startAtIso = String(formData.get("startAtIso") || "");
 
