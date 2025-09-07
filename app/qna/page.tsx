@@ -34,9 +34,19 @@ async function askQuestion(formData: FormData): Promise<void> {
 
 export default async function QnaPage() {
   const session = await auth();
+  if (!session?.user) {
+    return (
+      <div className="max-w-xl mx-auto mt-16 p-6 rounded-lg border border-zinc-800 bg-zinc-900 text-center">
+        <h1 className="text-2xl font-mono mb-2">Q&amp;A</h1>
+        <p className="text-lg text-yellow-300 mb-4">You must be signed in to view and ask questions.</p>
+        <p className="text-sm opacity-70 mb-4">Sign in with Discord to access the Q&amp;A feature.</p>
+        <Link href="/api/auth/signin" className="inline-block px-4 py-2 rounded bg-cyan-700 text-white font-semibold hover:bg-cyan-600">Sign in</Link>
+      </div>
+    );
+  }
 
   const questions = await prisma.question.findMany({
-    orderBy: { id: "desc" },              // <-- CHANGED: no createdAt
+    orderBy: { id: "desc" },
     select: {
       id: true,
       title: true,
@@ -56,8 +66,6 @@ export default async function QnaPage() {
 
       <section className="space-y-4">
         <h2 className="text-xl">Ask a question</h2>
-        {!session?.user && <p className="opacity-70 text-sm">Sign in with Discord to ask.</p>}
-
         <form action={askQuestion} className="space-y-3">
           <label className="sr-only" htmlFor="title">Title</label>
           <Input id="title" name="title" placeholder="Title" required />
@@ -67,7 +75,7 @@ export default async function QnaPage() {
 
           <Input name="tags" placeholder="tags (comma separated, e.g. Rules, Format)" />
 
-          <Button type="submit" disabled={!session?.user}>Ask</Button>
+          <Button type="submit">Ask</Button>
         </form>
       </section>
 
