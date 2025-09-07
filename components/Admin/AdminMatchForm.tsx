@@ -59,4 +59,90 @@ export default function AdminMatchForm({
           required
         >
           {tournaments.map((t) => (
-            <option key={
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="grid gap-1">
+        <label htmlFor="teamAId" className="text-sm text-zinc-300">Team A</label>
+        <select
+          id="teamAId"
+          name="teamAId"
+          defaultValue={initial.teamAId ?? ""}
+          className="rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1 text-zinc-100"
+          required
+        >
+          <option value="">— Select —</option>
+          {teams.map((t) => (
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="grid gap-1">
+        <label htmlFor="teamBId" className="text-sm text-zinc-300">Team B</label>
+        <select
+          id="teamBId"
+          name="teamBId"
+          defaultValue={initial.teamBId ?? ""}
+          className="rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1 text-zinc-100"
+          required
+        >
+          <option value="">— Select —</option>
+          {teams.map((t) => (
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-1">
+          <label htmlFor="round" className="text-sm text-zinc-300">Round</label>
+          <input
+            id="round"
+            name="round"
+            type="number"
+            min={1}
+            defaultValue={initial.round ?? 1}
+            className="rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1 text-zinc-100"
+            required
+          />
+        </div>
+
+        <div className="grid gap-1">
+          <label htmlFor="bestOf" className="text-sm text-zinc-300">Best Of</label>
+          <input
+            id="bestOf"
+            name="bestOf"
+            type="number"
+            min={1}
+            defaultValue={initial.bestOf ?? 1}
+            className="rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1 text-zinc-100"
+            required
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-1">
+        <label htmlFor="startAtIso" className="text-sm text-zinc-300">Start (local)</label>
+        <input
+          id="startAtIso"
+          name="startAtIso"
+          type="datetime-local"
+          defaultValue={toLocalInputValue(initial.startAtIso)}
+          className="rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1 text-zinc-100"
+        />
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          className="inline-flex items-center rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+        >
+          {mode === "edit" ? "Save Match" : "Create Match"}
+        </button>
+      </div>
+    </form>
+  );
+}
