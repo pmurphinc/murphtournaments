@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "prebuild": "node scripts/embed-png-as-svg.mjs public/discord-app-icon.png public/logo.svg 128",
     "sync:logo": "node scripts/embed-png-as-svg.mjs public/discord-app-icon.png public/logo.svg 128",
     "dev": "next dev",
     "build": "prisma generate && next build",
