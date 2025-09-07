@@ -1,12 +1,10 @@
 // app/admin/matches/[id]/page.tsx
 export const dynamic = "force-dynamic";
-
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import AdminMatchForm from "@/components/admin/AdminMatchForm";
-
+import AdminMatchForm from '../../../../components/admin/AdminMatchForm';
 // ----- Update server action -----
 async function updateMatch(formData: FormData): Promise<void> {
   "use server";
@@ -17,7 +15,7 @@ async function updateMatch(formData: FormData): Promise<void> {
   const tournamentId = String(formData.get("tournamentId") || "");
   const teamAId = String(formData.get("teamAId") || "");
   const teamBId = String(formData.get("teamBId") || "");
-  const round = parseInt(String(formData.get("round") || "1"), 10);
+  const round = parseInt(String(formData.get("round") || "1"), 10);s
   const bestOf = parseInt(String(formData.get("bestOf") || "1"), 10);
   const startAtIso = String(formData.get("startAtIso") || "");
 
