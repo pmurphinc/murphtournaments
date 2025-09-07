@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import AdminMatchForm from "@/components/admin/AdminMatchForm";
+import AdminMatchForm from "@/components/Admin/AdminMatchForm";
 import LocalTime from "@/components/LocalTime";
 import Link from "next/link";
 
