@@ -1,4 +1,4 @@
-// app/admin/matches/page.tsx
+// components/Admin/Matches/page.tsx
 export const dynamic = "force-dynamic";
 
 import { auth } from "@/lib/auth";
@@ -52,34 +52,52 @@ export default async function AdminMatchesPage() {
   }
 
   const [tournaments, teams, matches] = await Promise.all([
-    prisma.tournament.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.team.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.tournament.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.team.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
     prisma.match.findMany({
       orderBy: { startAt: "desc" },
       include: {
+        // keep tournament name; remove teamA/teamB (not valid relations in your schema)
         tournament: { select: { name: true } },
-        teamA: { select: { name: true } },
-        teamB: { select: { name: true } },
       },
       take: 50,
     }),
   ]);
 
+  // Helper to display team names using the fetched teams list
+  const nameOf = (id?: string | null) =>
+    teams.find((t) => t.id === id)?.name ?? "TBD";
+
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl mb-2">Admin: Create Match</h1>
+        <h1 className="mb-2 text-2xl">Admin: Create Match</h1>
         <AdminMatchForm
           mode="create"
           tournaments={tournaments}
           teams={teams}
           action={createMatch}
+          initial={{
+            id: "",
+            tournamentId: tournaments[0]?.id ?? "",
+            teamAId: null,
+            teamBId: null,
+            round: 1,
+            bestOf: 1,
+            startAtIso: null,
+          }}
         />
       </div>
 
       <div className="space-y-3">
         <h2 className="text-xl">Recent Matches</h2>
-        <div className="overflow-hidden rounded-lg border border-zinc-800 divide-y divide-zinc-800">
+        <div className="divide-y divide-zinc-800 overflow-hidden rounded-lg border border-zinc-800">
           {matches.map((m) => (
             <div key={m.id} className="grid grid-cols-[1fr_auto_auto] gap-3 p-3">
               <div className="min-w-0">
@@ -87,12 +105,12 @@ export default async function AdminMatchesPage() {
                   {m.tournament?.name ?? "Tournament"} • Round {m.round} • BO{m.bestOf}
                 </div>
                 <div className="truncate">
-                  <span className="font-medium">{m.teamA?.name ?? "TBD"}</span>
+                  <span className="font-medium">{nameOf((m as any).teamAId)}</span>
                   <span className="opacity-70"> vs </span>
-                  <span className="font-medium">{m.teamB?.name ?? "TBD"}</span>
+                  <span className="font-medium">{nameOf((m as any).teamBId)}</span>
                 </div>
               </div>
-              <div className="text-right whitespace-nowrap">
+              <div className="whitespace-nowrap text-right">
                 {m.startAt ? <LocalTime iso={m.startAt.toISOString()} /> : "TBD"}
               </div>
               <div className="text-right">
@@ -105,7 +123,9 @@ export default async function AdminMatchesPage() {
               </div>
             </div>
           ))}
-          {matches.length === 0 && <div className="p-3 opacity-70">No matches yet.</div>}
+          {matches.length === 0 && (
+            <div className="p-3 opacity-70">No matches yet.</div>
+          )}
         </div>
       </div>
     </div>
