@@ -20,9 +20,8 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <StatusBanner tournament={data.tournament ?? null} />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="shadow-glow"><CardHeader><CardTitle>Teams Signed Up</CardTitle></CardHeader><CardContent className="text-4xl">{data.teams}</CardContent></Card>
-        <Card className="shadow-glow"><CardHeader><CardTitle>Open Questions</CardTitle></CardHeader><CardContent className="text-4xl">{data.openQuestions}</CardContent></Card>
         <Card className="shadow-glow"><CardHeader><CardTitle>Upcoming Matches/Lobbies</CardTitle></CardHeader><CardContent className="text-4xl">{data.upcomingMatches}</CardContent></Card>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
