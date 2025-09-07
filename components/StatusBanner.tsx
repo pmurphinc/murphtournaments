@@ -65,37 +65,50 @@ function countdown(to: Date) {
 }
 
 export function StatusBanner({ tournament }: Props) {
-  const [liveTournament, setLiveTournament] = useState(tournament);
+  const [liveTournament, setLiveTournament] = useState<null | Props["tournament"]>(null);
   const [now, setNow] = useState<Date>(new Date());
 
   useEffect(() => {
     const supabase = createClient();
     let mounted = true;
 
-    async function fetchStatus() {
-      if (!tournament?.name) return;
-      const { data, error } = await supabase
+    async function fetchTournament() {
+      // 1. Try to get the next future tournament (startsAt > now)
+      const nowIso = new Date().toISOString();
+      let { data, error } = await supabase
         .from("Tournament")
         .select("status,startsAt,checkInOpensAt,name")
-        .eq("name", tournament.name)
-        .single();
-      if (!error && data && mounted) {
-        setLiveTournament((prev) => ({
-          ...prev,
-          ...data,
-        }));
+        .gt("startsAt", nowIso)
+        .order("startsAt", { ascending: true })
+        .limit(1);
+
+      let tournament = data?.[0];
+
+      // 2. If no future tournament, get the most recent past tournament
+      if (!tournament) {
+        const { data: pastData, error: pastError } = await supabase
+          .from("Tournament")
+          .select("status,startsAt,checkInOpensAt,name")
+          .lte("startsAt", nowIso)
+          .order("startsAt", { ascending: false })
+          .limit(1);
+        tournament = pastData?.[0];
+      }
+
+      if (mounted && tournament) {
+        setLiveTournament(tournament);
       }
     }
 
-    fetchStatus(); // initial fetch
-    const pollId = setInterval(fetchStatus, 30_000);
+    fetchTournament(); // initial fetch
+    const pollId = setInterval(fetchTournament, 30_000);
     const timeId = setInterval(() => setNow(new Date()), 30_000);
     return () => {
       mounted = false;
       clearInterval(pollId);
       clearInterval(timeId);
     };
-  }, [tournament?.name]);
+  }, []);
 
   // Use liveTournament for all status logic
   const dbStart = liveTournament?.startsAt ? new Date(liveTournament.startsAt) : null;
