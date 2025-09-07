@@ -4,10 +4,11 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import AuthButton from "@/components/AuthButton";
 
 const LINKS = [
   { href: "/", label: "Dashboard" },
-  { href: "/signup", label: "Sign-Up" }, // hyphen prevents ugly wrap
+  { href: "/signup", label: "Sign-Up" },
   { href: "/qna", label: "Q&A" },
   { href: "/schedule", label: "Schedule" },
   { href: "/rules", label: "Rules" },
@@ -30,7 +31,7 @@ export default function Nav() {
           </span>
         </Link>
 
-        {/* Desktop links */}
+        {/* Desktop nav */}
         <nav className="hidden items-center gap-6 md:flex">
           {LINKS.map((it) => (
             <Link
@@ -45,12 +46,9 @@ export default function Nav() {
               {it.label}
             </Link>
           ))}
-          <Link
-            href="/api/auth/signin"
-            className="rounded-lg border border-zinc-700 px-3 py-1.5 text-sm text-zinc-100 hover:bg-zinc-800"
-          >
-            Sign in
-          </Link>
+
+          {/* Auth button (Discord sign-in or avatar) */}
+          <AuthButton />
         </nav>
 
         {/* Mobile hamburger */}
@@ -58,10 +56,11 @@ export default function Nav() {
           type="button"
           aria-label="Open menu"
           aria-expanded={open}
+          aria-controls="mobile-menu"
           onClick={() => setOpen((s) => !s)}
           className="inline-flex items-center justify-center rounded-md p-2.5 text-zinc-200 hover:bg-zinc-800/60 focus:outline-none focus:ring-2 focus:ring-cyan-500 md:hidden"
         >
-          <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
             <path
               strokeWidth="2"
               strokeLinecap="round"
@@ -73,7 +72,7 @@ export default function Nav() {
 
       {/* Mobile panel */}
       {open && (
-        <div className="md:hidden border-t border-zinc-800/60 bg-black/95">
+        <div id="mobile-menu" className="md:hidden border-t border-zinc-800/60 bg-black/95">
           <nav className="mx-auto grid max-w-6xl gap-2 px-4 py-3">
             {LINKS.map((it) => (
               <Link
@@ -89,13 +88,11 @@ export default function Nav() {
                 {it.label}
               </Link>
             ))}
-            <Link
-              href="/api/auth/signin"
-              onClick={() => setOpen(false)}
-              className="mt-1 block rounded-lg border border-zinc-700 px-3 py-2 text-base text-zinc-100 hover:bg-zinc-800"
-            >
-              Sign in
-            </Link>
+
+            {/* Auth button on mobile */}
+            <div className="mt-2">
+              <AuthButton />
+            </div>
           </nav>
         </div>
       )}
