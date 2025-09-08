@@ -8,10 +8,10 @@ function slugify(s: string) {
 async function main() {
   // Hosts / Users
   const [jacob, megatron, trav, murph] = await Promise.all([
-    prisma.user.upsert({ where: { discordId: "jacob#host" }, update: {}, create: { discordId: "jacob#host", displayName: "Jacob" } }),
+    prisma.user.upsert({ where: { discordId: "jacob#host" },    update: {}, create: { discordId: "jacob#host",    displayName: "Jacob" } }),
     prisma.user.upsert({ where: { discordId: "megatron#host" }, update: {}, create: { discordId: "megatron#host", displayName: "Megatron" } }),
-    prisma.user.upsert({ where: { discordId: "trav#host" }, update: {}, create: { discordId: "trav#host", displayName: "Trav" } }),
-    prisma.user.upsert({ where: { discordId: "murph#host" }, update: {}, create: { discordId: "murph#host", displayName: "Murph" } }),
+    prisma.user.upsert({ where: { discordId: "trav#host" },     update: {}, create: { discordId: "trav#host",     displayName: "Trav" } }),
+    prisma.user.upsert({ where: { discordId: "murph#host" },    update: {}, create: { discordId: "murph#host",    displayName: "Murph" } }),
   ]);
 
   // Tournament
@@ -78,14 +78,20 @@ async function main() {
     },
   });
 
+  await prisma.match.create({
+    data: {
+      tournamentId: t.id,
+      round: 2,
+      bestOf: 1,
+      status: "SCHEDULED",
+      teamAEntryId: entryFAFO.id,
+      teamBEntryId: entryDog.id,
+    },
+  });
+
   console.log("Seed complete:", { users: 4, tournamentTitle: t.title, tournamentId: t.id });
 }
 
 main()
   .catch((e) => { console.error(e); process.exit(1); })
   .finally(async () => { await prisma.$disconnect(); });
-    { tournamentId: t.id, teamAEntryId: entryFAFO.id, teamBEntryId: entryDog.id, round: 2, bestOf: 1, status: "SCHEDULED", scheduledAt: new Date(Date.now() + 1000*60*60*26) }
-  ]});
-  console.log("Seed complete:", { hosts: hosts.length, tournament: t.slug });
-}
-main().catch(e => { console.error(e); }).finally(() => prisma.$disconnect());
