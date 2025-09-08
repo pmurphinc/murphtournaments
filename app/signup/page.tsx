@@ -18,9 +18,9 @@ export default async function SignUpPage() {
   if (!session?.user) {
     return (
       <div className="max-w-xl space-y-4">
-        <h1 className="text-2xl">Team Sign-Up</h1>
+  <h1 className="text-2xl">Team Registration</h1>
         <p className="opacity-80">
-          Please sign in with Discord to register a team. We link your Discord account to your team
+          Please sign in with Discord to register your team. We link your Discord account to your team
           captain automatically so you don’t lose any info.
         </p>
 
@@ -62,7 +62,7 @@ export default async function SignUpPage() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <h1 className="text-2xl">Team Sign-Up</h1>
+  <h1 className="text-2xl">Team Registration</h1>
 
       <div className="rounded-md border border-zinc-700 bg-black/40 p-3 text-sm">
         <span className="opacity-70">Signed in as:</span>{" "}

@@ -25,7 +25,7 @@ export default function TeamSignupForm({
   action,
 }: Props) {
   // ----- state -----
-  const [tournamentId, setTournamentId] = React.useState(tournaments[0]?.id ?? "");
+  // No tournament selection; registration is global or handled elsewhere
   const [teamName, setTeamName] = React.useState("");
 
   const [embark1, setEmbark1] = React.useState("");
@@ -53,8 +53,8 @@ export default function TeamSignupForm({
 
   // Per-user, per-tournament key
   const draftKey = React.useMemo(
-    () => `signup:${userKey}:${tournamentId || "none"}`,
-    [userKey, tournamentId]
+    () => `signup:${userKey}`,
+    [userKey]
   );
 
   // ----- restore on mount or when tournament changes -----
@@ -158,7 +158,7 @@ export default function TeamSignupForm({
         onChange={(e) => onChange(e.target.value as PlatformOpt)}
         className="w-full h-9 rounded-md border border-zinc-700 bg-black/50 px-2"
       >
-        <option value="">— Platform (optional) —</option>
+  <option value="">— Platform —</option>
         <option value="PC">PC</option>
         <option value="Xbox">Xbox</option>
         <option value="PlayStation">PlayStation</option>
@@ -185,7 +185,7 @@ export default function TeamSignupForm({
         onChange={(e) => onChange(e.target.value as RegionOpt)}
         className="w-full h-9 rounded-md border border-zinc-700 bg-black/50 px-2"
       >
-        <option value="">— Region (optional) —</option>
+  <option value="">— Region —</option>
         <option value="NA">NA</option>
         <option value="EU">EU</option>
         <option value="APAC">APAC</option>
@@ -199,23 +199,8 @@ export default function TeamSignupForm({
         All fields required unless marked optional. Enter Embark IDs for 3 starters and (optionally) a sub.
       </p>
 
-      {/* Tournament */}
-      <label htmlFor="tournamentId" className="sr-only">
-        Tournament
-      </label>
-      <select
-        id="tournamentId"
-        name="tournamentId"
-        value={tournamentId}
-        onChange={(e) => setTournamentId(e.target.value)}
-        className="w-full h-9 rounded-md border border-zinc-700 bg-black/50 px-2"
-      >
-        {tournaments.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.name}
-          </option>
-        ))}
-      </select>
+
+  {/* Team Registration only; tournament selection removed */}
 
       {/* Team name */}
       <div>
@@ -253,7 +238,7 @@ export default function TeamSignupForm({
             <PlatformSelect id="platform1" name="platform1" value={platform1} onChange={setPlatform1} />
             <RegionSelect id="region1" name="region1" value={region1} onChange={setRegion1} />
           </div>
-          <p className="text-xs opacity-60 mt-2">Optional per-player Platform/Region; defaults to team settings.</p>
+          <p className="text-xs opacity-60 mt-2">Platform and region are optional.</p>
         </div>
 
         {/* Row 2 */}
@@ -314,7 +299,9 @@ export default function TeamSignupForm({
           onChange={(e) => setAgree(e.target.checked)}
           required
         />
-        <Label htmlFor="agree">I agree to the rules and format described in the discord post.</Label>
+        <Label htmlFor="agree">
+          I agree to the <a href="/rules" target="_blank" className="underline text-cyan-400 hover:text-cyan-300">Official Rules &amp; Fair Play Policy</a>.
+        </Label>
       </div>
 
       {/* Turnstile (hidden stub to match your current server code) */}
