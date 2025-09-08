@@ -2,6 +2,7 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import { useSession, signIn, signOut } from 'next-auth/react';
 
 function initials(name?: string | null) {
@@ -66,11 +67,13 @@ export default function AuthButton() {
         aria-label="Open user menu"
       >
         {avatarUrl ? (
-          <img
+          <Image
             src={avatarUrl}
             alt={user.name ?? 'User'}
             className="h-8 w-8 rounded-full object-cover"
-            referrerPolicy="no-referrer"
+            width={32}
+            height={32}
+            priority
           />
         ) : (
           <div className="h-8 w-8 rounded-full bg-zinc-700 text-center text-xs leading-8 text-zinc-100">
