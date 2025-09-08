@@ -1,5 +1,6 @@
 // lib/auth.ts
 import NextAuth from "next-auth";
+import "server-only";
 import Discord from "next-auth/providers/discord";
 import { prisma } from "./prisma";
 
