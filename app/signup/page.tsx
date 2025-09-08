@@ -2,6 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import TeamSignupForm from "@/components/signup/TeamSignupForm";
+import "server-only";
 import { headers } from "next/headers";
 import { auth, signIn } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -12,28 +13,25 @@ import { getClientIp } from "@/lib/utils";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 
-// ----- server action -----
 // Helper to slugify team names
 function slugify(input: string): string {
   return input.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
 }
-async function upsertTeam(formData: FormData): Promise<void> {
-  // ...existing code...
-  // Use session from auth()
-  const session = await auth();
-  const ownerId = session?.user?.id;
-  if (!ownerId) throw new Error("Not authenticated");
-  if (!session?.user) throw new Error("Sign in required");
+
+export async function handleSignup(formData: FormData) {
   "use server";
+
+  const session = await auth();
+  if (!session?.user) throw new Error("Sign in required");
+  const ownerId = session.user.id;
 
   const ip = getClientIp(headers());
   const rl = rateLimit(ip, "signup", 10, 60_000);
-  if (!rl.ok) throw new Error("Rate limit exceeded. Try again in a minute.");
+  if (!rl.ok) throw new Error("Rate limit exceeded");
 
   const raw = {
     tournamentId: formData.get("tournamentId") as string,
     teamName: formData.get("teamName") as string,
-    // still send this so your existing schema/backend keeps receiving it
     captainDiscord: formData.get("captainDiscord") as string,
     embark1: formData.get("embark1") as string,
     embark2: formData.get("embark2") as string,
@@ -89,19 +87,19 @@ async function upsertTeam(formData: FormData): Promise<void> {
     .send({ type: "broadcast", event: "signup", payload: { teamName: team.name } });
 
   // returning void satisfies Next.js form action typing
+  return;
+}
+
+export async function signInWithDiscord() {
+  "use server";
+  await signIn("discord");
 }
 
 // ----- page -----
 export default async function SignUpPage() {
   const session = await auth();
 
-  // If not signed in, show only the Discord sign-in button
   if (!session?.user) {
-    async function signInWithDiscord(): Promise<void> {
-      "use server";
-      await signIn("discord");
-    }
-
     return (
       <div className="max-w-xl space-y-4">
         <h1 className="text-2xl">Team Sign-Up</h1>
@@ -116,9 +114,8 @@ export default async function SignUpPage() {
     );
   }
 
-  // Signed-in flow
   const tournaments = await prisma.tournament.findMany({
-    orderBy: { startsAt: "desc" }, // matches your schema (avoid 'createdAt')
+    orderBy: { startsAt: "desc" },
   });
 
   const captainDiscordName =
@@ -126,7 +123,6 @@ export default async function SignUpPage() {
     ((session.user as any).discordId as string) ??
     "";
 
-  // key drafts per-user (user id preferred; fallback to discord id)
   const userKey =
     ((session.user as any).id as string) ??
     ((session.user as any).discordId as string);
@@ -135,7 +131,6 @@ export default async function SignUpPage() {
     <div className="max-w-2xl space-y-6">
       <h1 className="text-2xl">Team Sign-Up</h1>
 
-      {/* show who is signed in; carry value via hidden input in the form */}
       <div className="rounded-md border border-zinc-700 bg-black/40 p-3 text-sm">
         <span className="opacity-70">Signed in as:</span>{" "}
         <span className="font-semibold">{captainDiscordName}</span>
@@ -145,7 +140,7 @@ export default async function SignUpPage() {
         tournaments={tournaments.map((t) => ({ id: t.id, name: t.title }))}
         captainDiscordName={captainDiscordName}
         userKey={userKey}
-        action={upsertTeam}
+        action={handleSignup}
       />
     </div>
   );
