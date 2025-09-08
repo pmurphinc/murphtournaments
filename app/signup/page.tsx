@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 
 // ⬇️ Import server actions from a separate module
-import { handleSignup, signInWithDiscord } from "./actions";
+import { handleSignup } from "./actions";
 
 export default async function SignUpPage() {
   const session = await auth();
@@ -24,7 +24,11 @@ export default async function SignUpPage() {
           captain automatically so you don’t lose any info.
         </p>
 
-        <form action={signInWithDiscord}>
+        <form action={async () => {
+          "use server";
+          const { signInWithDiscord } = await import("./actions");
+          await signInWithDiscord();
+        }}>
           <Button type="submit" className="inline-flex items-center gap-2">
             {/* Optional: small Discord glyph next to text */}
             <span>Sign in with Discord</span>
