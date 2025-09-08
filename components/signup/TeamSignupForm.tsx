@@ -11,19 +11,22 @@ type Props = {
   tournaments: Tournament[];
   captainDiscordName: string;
   userKey: string; // user id or discord id
-  action: (formData: FormData) => void | Promise<void>; // server action passed from the page
+  action: (formData: FormData) => Promise<{ teamId: any } | void>; // server action passed from the page
 };
 
 // Optional per-Embark choices
 type PlatformOpt = "" | "PC" | "Xbox" | "PlayStation";
 type RegionOpt = "" | "NA" | "EU" | "APAC";
 
-export default function TeamSignupForm({
-  tournaments,
-  captainDiscordName,
-  userKey,
-  action,
-}: Props) {
+export default function TeamSignupForm(props: Props) {
+  const { tournaments, captainDiscordName, userKey, action } = props;
+  // DEBUG: Show received props and state
+  React.useEffect(() => {
+    if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.log("TeamSignupForm props:", { tournaments, captainDiscordName, userKey, action });
+    }
+  }, [tournaments, captainDiscordName, userKey, action]);
   // ----- state -----
   // No tournament selection; registration is global or handled elsewhere
   const [teamName, setTeamName] = React.useState("");
@@ -193,14 +196,38 @@ export default function TeamSignupForm({
     );
   }
 
+  const [submitted, setSubmitted] = React.useState(false);
+  const [teamId, setTeamId] = React.useState<string|null>(null);
+
+  async function handleFormSubmit(formData: FormData) {
+    const result = await action(formData);
+    if (typeof result === "object" && result !== null && "teamId" in result) {
+      setTeamId((result as any).teamId);
+      setSubmitted(true);
+    }
+    handleSubmitted();
+  }
+
+  if (submitted) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16">
+        <div className="bg-emerald-900/80 border border-emerald-700 rounded-xl px-8 py-10 shadow-lg text-center max-w-lg">
+          <div className="text-5xl mb-4">🎉</div>
+          <h2 className="text-2xl font-bold mb-2 text-emerald-200">Team Registered!</h2>
+          <p className="text-lg text-emerald-100 mb-4">Your team has been successfully registered.<br/>You can now edit your team or invite friends to join.</p>
+          <div className="mt-6 flex flex-col gap-2">
+            <a href={`/teams/edit`} className="px-5 py-2 rounded bg-cyan-600 text-white font-semibold hover:bg-cyan-700 transition">Edit Team</a>
+            <a href={`/teams/invite`} className="px-5 py-2 rounded bg-cyan-600 text-white font-semibold hover:bg-cyan-700 transition">Invite Friends</a>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
-    <form action={action} onSubmit={handleSubmitted} className="space-y-4" aria-describedby="signup-help">
+    <form action={handleFormSubmit} onSubmit={handleSubmitted} className="space-y-4" aria-describedby="signup-help">
       <p id="signup-help" className="sr-only">
         All fields required unless marked optional. Enter Embark IDs for 3 starters and (optionally) a sub.
       </p>
-
-
-  {/* Team Registration only; tournament selection removed */}
 
       {/* Team name */}
       <div>

@@ -16,9 +16,9 @@ export default async function AccountPage() {
       ) : (
         <ul className="divide-y divide-zinc-800 overflow-hidden rounded-lg border border-zinc-800">
           <li className="p-4 hover:bg-zinc-900/60">
-            <Link href="/signup" className="text-cyan-400 underline underline-offset-4">
-              Sign up for a tournament
-            </Link>
+              <Link href="/registration" className="text-cyan-400 underline underline-offset-4">
+                Team Registration
+              </Link>
           </li>
           <li className="p-4 hover:bg-zinc-900/60">
             <Link href="/teams/edit" className="text-cyan-400 underline underline-offset-4">

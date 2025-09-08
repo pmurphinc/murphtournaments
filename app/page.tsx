@@ -40,6 +40,14 @@ export default async function DashboardPage() {
           <li className="text-sm font-semibold text-yellow-300">⚠️ This website is a work in progress. Features and data may change at any time.</li>
         </ul></CardContent></Card>
       </div>
+      <div className="mt-8">
+        <a
+          href="/registration"
+          className="inline-block px-6 py-3 bg-cyan-600 text-white font-bold rounded-lg shadow hover:bg-cyan-700 transition"
+        >
+          Team Registration
+        </a>
+      </div>
     </div>
   );
 }

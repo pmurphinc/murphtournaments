@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/", label: "Dashboard" },
   { href: "/schedule", label: "Schedule" },
   { href: "/rules", label: "Rules" },
+  { href: "/registration", label: "Team Registration" },
 ];
 
 export default function Nav() {
