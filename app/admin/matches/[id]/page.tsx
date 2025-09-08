@@ -79,11 +79,11 @@ export default async function EditMatchPage({ params }: { params: { id: string }
   const initial = {
     id: m.id,
     tournamentId: m.tournamentId,
-    teamAId: m.teamAId,
-    teamBId: m.teamBId,
+    teamAId: m.teamAEntryId,
+    teamBId: m.teamBEntryId,
     round: m.round,
     bestOf: m.bestOf,
-    startAtIso: m.startAt ? m.startAt.toISOString() : null,
+    startAtIso: m.scheduledAt ? m.scheduledAt.toISOString() : null,
   };
 
   return (
