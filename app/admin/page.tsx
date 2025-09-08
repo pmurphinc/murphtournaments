@@ -24,7 +24,7 @@ export default async function AdminPage() {
       <div className="space-y-4">
         {tournaments.map(tt => (
           <div key={tt.id} className="rounded-lg border border-zinc-800 p-4">
-            <div className="mb-2 text-lg font-semibold">{tt.title ?? tt.name}</div>
+            <div className="mb-2 text-lg font-semibold">{tt.title}</div>
             <ul className="text-sm text-zinc-300">
               {tt.teams.length === 0 ? (
                 <li className="italic text-zinc-500">No registered teams</li>

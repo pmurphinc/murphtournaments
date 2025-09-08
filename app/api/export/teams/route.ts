@@ -4,14 +4,67 @@ import { requireRole } from "@/lib/rbac";
 
 export async function GET() {
   await requireRole("STAFF");
-  const teams = await prisma.team.findMany({ include: { members: true, tournament: true, captain: true } });
-  const header = "Tournament,Team,Approved,CaptainDiscord,Member,EmbarkId,IsSub\n";
-  const rows = teams.flatMap(t =>
-    t.members.map(m =>
-      [t.tournament.name, t.name, t.approved ? "yes" : "no", t.captain.discordId, m.displayName, m.embarkId, m.isSub ? "yes" : "no"]
-        .map(s => `"${String(s ?? "").replace(/"/g, '""')}"`).join(",")
-    )
-  );
-  const csv = header + rows.join("\n");
-  return new NextResponse(csv, { headers: { "Content-Type": "text/csv", "Content-Disposition": "attachment; filename=\"teams.csv\"" } });
+  const tournaments = await prisma.tournament.findMany({
+    orderBy: { startsAt: "desc" },
+    include: {
+      entries: {
+        include: {
+          team: true,
+          captain: { select: { discordId: true } },
+          members: {
+            include: {
+              user: { select: { displayName: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  function csvEscape(val: unknown): string {
+    const s = String(val ?? "");
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+
+  const header = [
+    "tournamentTitle",
+    "teamDisplay",
+    "captainDiscordId",
+    "memberDisplayName",
+    "embarkId",
+    "platform",
+    "region",
+    "role"
+  ];
+
+  const lines: string[] = [header.map(csvEscape).join(",")];
+
+  for (const t of tournaments) {
+    for (const e of t.entries) {
+      const teamDisplay = e.displayName ?? e.team.name;
+      const captainDiscordId = e.captain?.discordId ?? "";
+      for (const m of e.members) {
+        lines.push([
+          t.title,
+          teamDisplay,
+          captainDiscordId,
+          m.user?.displayName ?? "",
+          m.embarkId ?? "",
+          m.platform ?? "",
+          m.region ?? "",
+          m.role
+        ].map(csvEscape).join(","));
+      }
+    }
+  }
+
+  const csv = lines.join("\r\n");
+
+  return new Response(csv, {
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": "attachment; filename=teams_export.csv",
+      "Cache-Control": "no-store"
+    }
+  });
 }

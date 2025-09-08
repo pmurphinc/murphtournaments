@@ -6,10 +6,18 @@ import { createClient } from "@/lib/supabase";
 import { Suspense } from "react";
 
 async function getData() {
-  const [tournament] = await prisma.tournament.findMany({ orderBy: { startsAt: "desc" }, take: 1 });
-  const teams = tournament ? await prisma.team.count({ where: { tournamentId: tournament.id } }) : 0;
-  const openQuestions = await prisma.question.count({ where: { status: "OPEN" } });
-  const upcomingMatches = tournament ? await prisma.match.count({ where: { tournamentId: tournament.id, status: { in: ["PENDING", "READY"] } } }) : 0;
+  const [tournament] = await prisma.tournament.findMany({
+    orderBy: { startsAt: "desc" },
+    take: 1,
+    include: { entries: true },
+  });
+  const teams = tournament ? tournament.entries.length : 0;
+  const openQuestions = 0;
+  const upcomingMatches = tournament
+    ? await prisma.match.count({
+        where: { tournamentId: tournament.id, status: { in: ["SCHEDULED", "LIVE"] } },
+      })
+    : 0;
   const hours = Array.from({ length: 24 }).map((_, i) => ({ name: f`${i}:00`, signups: Math.floor(Math.random()*5), questions: Math.floor(Math.random()*3) }));
   return { tournament, teams, openQuestions, upcomingMatches, hours };
 }
@@ -17,9 +25,12 @@ function f(strings: TemplateStringsArray, v: any){return String(v)} // tiny help
 
 export default async function DashboardPage() {
   const data = await getData();
+  const sb = data.tournament
+    ? { name: data.tournament.title, status: data.tournament.status as any, startsAt: data.tournament.startsAt, checkInOpensAt: null }
+    : null;
   return (
     <div className="space-y-6">
-      <StatusBanner tournament={data.tournament ?? null} />
+      <StatusBanner tournament={sb} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="shadow-glow"><CardHeader><CardTitle>Teams Signed Up</CardTitle></CardHeader><CardContent className="text-4xl">{data.teams}</CardContent></Card>
         <Card className="shadow-glow"><CardHeader><CardTitle>Upcoming Matches/Lobbies</CardTitle></CardHeader><CardContent className="text-4xl">{data.upcomingMatches}</CardContent></Card>

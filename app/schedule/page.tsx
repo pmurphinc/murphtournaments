@@ -29,28 +29,32 @@ function groupByDate(rows: MatchRow[]) {
 }
 
 export default async function SchedulePage() {
-  // 1) Get upcoming/dated matches
-  const matches = (await prisma.match.findMany({
-    where: { startAt: { not: null } },
-    orderBy: { startAt: "asc" },
-    include: { tournament: { select: { name: true } } },
+  // 1) Get upcoming/dated matches with full entry/team info
+  const matches = await prisma.match.findMany({
+    orderBy: [{ round: "asc" }, { createdAt: "asc" }],
+    include: {
+      tournament: { select: { title: true } },
+      teamA: { include: { team: true } },
+      teamB: { include: { team: true } },
+      winner: { include: { team: true } },
+    },
     take: 500,
-  })) as MatchRow[];
-
-  // 2) Gather unique team IDs and fetch names in one go
-  const ids = Array.from(
-    new Set(
-      matches.flatMap((m) => [m.teamAId, m.teamBId].filter(Boolean) as string[])
-    )
-  );
-  const teams = await prisma.team.findMany({
-    where: { id: { in: ids } },
-    select: { id: true, name: true },
   });
-  const teamNameById = new Map(teams.map((t) => [t.id, t.name]));
 
-  // 3) Group matches by calendar date (UTC)
-  const groups = groupByDate(matches);
+  // 2) Group matches by calendar date (UTC)
+  function groupByDateNew(rows: typeof matches) {
+    const map = new Map<string, typeof matches>();
+    for (const m of rows) {
+      if (!m.scheduledAt) continue;
+      const iso = m.scheduledAt.toISOString();
+      const dateKey = iso.slice(0, 10); // YYYY-MM-DD
+      const list = map.get(dateKey) ?? [];
+      list.push(m);
+      map.set(dateKey, list);
+    }
+    return map;
+  }
+  const groups = groupByDateNew(matches);
 
   return (
     <div className="space-y-6">
@@ -79,14 +83,14 @@ export default async function SchedulePage() {
 
             <div className="divide-y divide-zinc-800 overflow-hidden rounded-lg border border-zinc-800">
               {list.map((m) => {
-                const iso = m.startAt ? m.startAt.toISOString() : null;
-                const nameA = m.teamAId ? teamNameById.get(m.teamAId) ?? "TBD" : "TBD";
-                const nameB = m.teamBId ? teamNameById.get(m.teamBId) ?? "TBD" : "TBD";
+                const iso = m.startedAt ? m.startedAt.toISOString() : null;
+                const nameA = m.teamA?.displayName ?? m.teamA?.team?.name ?? "TBD";
+                const nameB = m.teamB?.displayName ?? m.teamB?.team?.name ?? "TBD";
                 return (
                   <div key={m.id} className="grid grid-cols-[1fr_auto] gap-3 p-3 sm:grid-cols-[1fr_auto_auto]">
                     <div className="min-w-0">
                       <div className="truncate text-sm opacity-80">
-                        {m.tournament?.name ?? "Untitled Tournament"} • Round {m.round} • BO{m.bestOf}
+                        {m.tournament?.title ?? "Untitled Tournament"} • Round {m.round} • BO{m.bestOf}
                       </div>
                       <div className="truncate text-base">
                         <span className="font-medium">{nameA}</span>
