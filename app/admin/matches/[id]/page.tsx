@@ -42,7 +42,7 @@ async function updateMatch(formData: FormData): Promise<void> {
       round,
       bestOf,
       status: "SCHEDULED",
-      startAt: startAtIso ? new Date(startAtIso) : null,
+  scheduledAt: startAtIso ? new Date(startAtIso) : null,
     },
     update: {
       tournamentId,
@@ -50,7 +50,7 @@ async function updateMatch(formData: FormData): Promise<void> {
       teamBEntryId: teamBId,
       round,
       bestOf,
-      startAt: startAtIso ? new Date(startAtIso) : null,
+  scheduledAt: startAtIso ? new Date(startAtIso) : null,
     },
   });
 
