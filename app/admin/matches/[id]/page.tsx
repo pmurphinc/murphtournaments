@@ -68,9 +68,9 @@ export default async function EditMatchPage({ params }: { params: { id: string }
   const [m, tournaments, teams] = await Promise.all([
     prisma.match.findUnique({
       where: { id: params.id },
-      include: { tournament: { select: { id: true, name: true } } },
+      include: { tournament: { select: { id: true, title: true } } },
     }),
-    prisma.tournament.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.tournament.findMany({ select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.team.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
