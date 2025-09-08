@@ -37,19 +37,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       try {
         if (!profile) return true;
         const discordId = String((profile as any).id);
-        const email = ((profile as any).email as string | null) ?? null;
-
-        // create/update user without throwing
         await prisma.user.upsert({
           where: { discordId },
-          update: { email },
-          create: { discordId, email },
+          update: {},
+          create: { discordId },
         });
-
         return true;
       } catch (err) {
         console.error("NextAuth signIn upsert error:", err);
-        // Still allow login, so NextAuth doesn't show AccessDenied
         return true;
       }
     },
@@ -61,7 +56,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const u = await prisma.user.findUnique({ where: { discordId } });
           if (u) {
             (token as any).userId = u.id;
-            (token as any).role = u.role;
             (token as any).discordId = u.discordId;
           }
         } else if ((token as any).discordId) {
@@ -70,7 +64,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
           if (u) {
             (token as any).userId = u.id;
-            (token as any).role = u.role;
           }
         }
       } catch (err) {
@@ -81,7 +74,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
     async session({ session, token }) {
       (session as any).user.id = (token as any).userId ?? null;
-      (session as any).user.role = (token as any).role ?? "USER";
       (session as any).user.discordId = (token as any).discordId ?? null;
       return session;
     },

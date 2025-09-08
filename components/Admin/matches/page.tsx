@@ -15,24 +15,25 @@ async function createMatch(formData: FormData): Promise<void> {
   if (!session?.user) throw new Error("Sign in required");
 
   const tournamentId = String(formData.get("tournamentId") || "");
-  const teamAId = String(formData.get("teamAId") || "");
-  const teamBId = String(formData.get("teamBId") || "");
+  const teamAEntryId = String(formData.get("teamAId") || "");
+  const teamBEntryId = String(formData.get("teamBId") || "");
   const round = parseInt(String(formData.get("round") || "1"), 10);
   const bestOf = parseInt(String(formData.get("bestOf") || "1"), 10);
   const startAtIso = String(formData.get("startAtIso") || "");
 
-  if (!tournamentId || !teamAId || !teamBId || !startAtIso) {
+  if (!tournamentId || !teamAEntryId || !teamBEntryId || !startAtIso) {
     throw new Error("Missing required fields");
   }
 
   await prisma.match.create({
     data: {
       tournamentId,
-      teamAId,
-      teamBId,
+      teamAEntryId,
+      teamBEntryId,
       round,
       bestOf,
-      startAt: new Date(startAtIso),
+      status: "SCHEDULED",
+      scheduledAt: new Date(startAtIso),
     },
   });
 
@@ -51,28 +52,29 @@ export default async function AdminMatchesPage() {
     );
   }
 
-  const [tournaments, teams, matches] = await Promise.all([
-    prisma.tournament.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
-    prisma.team.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
-    prisma.match.findMany({
-      orderBy: { startAt: "desc" },
-      include: {
-        // keep tournament name; remove teamA/teamB (not valid relations in your schema)
-        tournament: { select: { name: true } },
-      },
-      take: 50,
-    }),
-  ]);
+  const tournamentsRaw = await prisma.tournament.findMany({
+    select: { id: true, title: true },
+    orderBy: { startsAt: "desc" },
+  });
+  const tournaments = tournamentsRaw.map(t => ({ id: t.id, name: t.title }));
+  const entries = await prisma.tournamentEntry.findMany({
+    select: { id: true, displayName: true },
+    orderBy: { id: "asc" },
+  });
+  const matches = await prisma.match.findMany({
+    include: {
+      tournament: { select: { title: true } },
+      teamA: { include: { team: true } },
+      teamB: { include: { team: true } },
+      winner: { include: { team: true } },
+    },
+    orderBy: [{ round: "asc" }, { createdAt: "desc" }],
+    take: 50,
+  });
 
   // Helper to display team names using the fetched teams list
   const nameOf = (id?: string | null) =>
-    teams.find((t) => t.id === id)?.name ?? "TBD";
+    entries.find((e) => e.id === id)?.displayName ?? "TBD";
 
   return (
     <div className="space-y-8">
@@ -81,7 +83,7 @@ export default async function AdminMatchesPage() {
         <AdminMatchForm
           mode="create"
           tournaments={tournaments}
-          teams={teams}
+          teams={entries.map(e => ({ id: e.id, name: e.displayName }))}
           action={createMatch}
           initial={{
             id: "",
@@ -102,16 +104,16 @@ export default async function AdminMatchesPage() {
             <div key={m.id} className="grid grid-cols-[1fr_auto_auto] gap-3 p-3">
               <div className="min-w-0">
                 <div className="text-sm opacity-80">
-                  {m.tournament?.name ?? "Tournament"} • Round {m.round} • BO{m.bestOf}
+                  {m.tournament?.title ?? "Tournament"} • Round {m.round} • BO{m.bestOf}
                 </div>
                 <div className="truncate">
-                  <span className="font-medium">{nameOf((m as any).teamAId)}</span>
+                  <span className="font-medium">{m.teamA?.displayName ?? m.teamA?.team?.name ?? "TBD"}</span>
                   <span className="opacity-70"> vs </span>
-                  <span className="font-medium">{nameOf((m as any).teamBId)}</span>
+                  <span className="font-medium">{m.teamB?.displayName ?? m.teamB?.team?.name ?? "TBD"}</span>
                 </div>
               </div>
               <div className="whitespace-nowrap text-right">
-                {m.startAt ? <LocalTime iso={m.startAt.toISOString()} /> : "TBD"}
+                {m.startedAt ? <LocalTime iso={m.startedAt.toISOString()} /> : "TBD"}
               </div>
               <div className="text-right">
                 <Link

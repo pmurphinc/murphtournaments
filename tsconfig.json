@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
+  "baseUrl": ".",
     "target": "ES2022",
     "lib": [
       "ES2022",
@@ -29,7 +29,8 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "types": ["node"]
   },
   "include": [
     "next-env.d.ts",

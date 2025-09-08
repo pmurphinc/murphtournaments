@@ -13,11 +13,18 @@ import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 
 // ----- server action -----
+// Helper to slugify team names
+function slugify(input: string): string {
+  return input.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+}
 async function upsertTeam(formData: FormData): Promise<void> {
-  "use server";
-
+  // ...existing code...
+  // Use session from auth()
   const session = await auth();
+  const ownerId = session?.user?.id;
+  if (!ownerId) throw new Error("Not authenticated");
   if (!session?.user) throw new Error("Sign in required");
+  "use server";
 
   const ip = getClientIp(headers());
   const rl = rateLimit(ip, "signup", 10, 60_000);
@@ -52,34 +59,33 @@ async function upsertTeam(formData: FormData): Promise<void> {
   });
   if (!captainUser) throw new Error("User not found");
 
+  const teamSlug = slugify(parsed.data.teamName);
   const team = await prisma.team.upsert({
-    where: { name: parsed.data.teamName },
+    where: { slug: teamSlug },
     update: {
-      tournamentId: parsed.data.tournamentId,
-      notes: `${parsed.data.platform}/${parsed.data.region}`,
+      name: parsed.data.teamName,
     },
     create: {
       name: parsed.data.teamName,
-      tournamentId: parsed.data.tournamentId,
-      captainId: captainUser.id,
-      members: {
-        create: [
-          // store captain’s readable Discord name alongside Embark ID 1
-          { displayName: parsed.data.captainDiscord, embarkId: parsed.data.embark1 },
-          { displayName: "Starter 2", embarkId: parsed.data.embark2 },
-          { displayName: "Starter 3", embarkId: parsed.data.embark3 },
-          ...(parsed.data.embarkSub
-            ? [{ displayName: "Sub", embarkId: parsed.data.embarkSub, isSub: true }]
-            : []),
-        ],
-      },
+      slug: teamSlug,
+      owner: { connect: { id: ownerId } },
     },
   });
 
-  // Realtime broadcast (keeps your existing behavior)
+  // Create a TournamentEntry for this event (event-specific snapshot & roster)
+  const entry = await prisma.tournamentEntry.create({
+    data: {
+      tournamentId: parsed.data.tournamentId,
+      teamId: team.id,
+      displayName: (parsed.data as any).teamDisplayName ?? team.name,
+      captainUserId: ownerId,
+      // members: { create: [...] } // add your EntryMembers here if this page handles roster
+    },
+  });
+
   const supa = createClient();
   await supa
-    .channel(`realtime:tournament:${team.tournamentId}:signups`)
+    .channel(`realtime:tournament:${entry.tournamentId}:signups`)
     .send({ type: "broadcast", event: "signup", payload: { teamName: team.name } });
 
   // returning void satisfies Next.js form action typing
@@ -136,7 +142,7 @@ export default async function SignUpPage() {
       </div>
 
       <TeamSignupForm
-        tournaments={tournaments.map((t) => ({ id: t.id, name: t.name }))}
+        tournaments={tournaments.map((t) => ({ id: t.id, name: t.title }))}
         captainDiscordName={captainDiscordName}
         userKey={userKey}
         action={upsertTeam}
