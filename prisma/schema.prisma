@@ -50,42 +50,51 @@ enum TournamentStatus {
   CANCELED
 }
 
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  COMPLETE
+  FORFEIT
+  CANCELED
+}
+
 // -----------------------------------------
 // Core Identity
 // -----------------------------------------
 
 model User {
-  id             String            @id @default(cuid())
+  id          String  @id @default(cuid())
   // Auth & identity
-  discordId      String            @unique
-  displayName    String
-  avatarUrl      String?
+  discordId   String  @unique
+  displayName String
+  avatarUrl   String?
 
   // Relationships
-  embarkProfiles EmbarkIdentity[]
-  memberships    TeamMember[]
-  entryMembers   EntryMember[]
-  ownedTeams     Team[]            @relation("TeamOwner")
+  embarkProfiles  EmbarkIdentity[]
+  memberships     TeamMember[]
+  entryMembers    EntryMember[]
+  ownedTeams      Team[]            @relation("TeamOwner")
   // A user can captain many entries (optional FK on TournamentEntry)
-  captainEntries TournamentEntry[] @relation("EntryCaptain")
+  captainEntries  TournamentEntry[] @relation("EntryCaptain")
+  reportedMatches Match[]           @relation("MatchReportedBy")
 
   // Timestamps
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([displayName])
 }
 
 model EmbarkIdentity {
-  id        String  @id @default(cuid())
-  userId    String
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // e.g. "Player#1234" (exact string the game uses)
   embarkId  String
   platform  Platform
   region    Region
-  isPrimary Boolean @default(false)
+  isPrimary Boolean  @default(false)
 
   createdAt DateTime @default(now())
 
@@ -98,30 +107,30 @@ model EmbarkIdentity {
 // -----------------------------------------
 
 model Team {
-  id        String         @id @default(cuid())
-  name      String
-  slug      String         @unique
-  logoUrl   String?
-  ownerId   String
-  owner     User           @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  id      String  @id @default(cuid())
+  name    String
+  slug    String  @unique
+  logoUrl String?
+  ownerId String
+  owner   User    @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Restrict)
 
-  members   TeamMember[]
-  entries   TournamentEntry[]
+  members TeamMember[]
+  entries TournamentEntry[]
 
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([name])
 }
 
 model TeamMember {
-  id        String   @id @default(cuid())
-  teamId    String
-  userId    String
-  role      TeamRole @default(PLAYER)
+  id     String   @id @default(cuid())
+  teamId String
+  userId String
+  role   TeamRole @default(PLAYER)
 
-  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
@@ -135,51 +144,55 @@ model TeamMember {
 // -----------------------------------------
 
 model Tournament {
-  id        String           @id @default(cuid())
-  title     String
-  startsAt  DateTime
-  status    TournamentStatus @default(ANNOUNCED)
+  id       String           @id @default(cuid())
+  title    String
+  startsAt DateTime
+  status   TournamentStatus @default(ANNOUNCED)
 
   // keep format flexible (e.g., "DE-BO1", "DE-BO3", "FinalRound-3v3", "Cashout->Final")
-  format    String
-  notes     String?
+  format String
+  notes  String?
 
-  entries   TournamentEntry[]
+  entries TournamentEntry[]
+  matches Match[]
 
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([startsAt])
   @@index([status])
 }
 
 model TournamentEntry {
-  id             String     @id @default(cuid())
-  tournamentId   String
-  teamId         String
+  id           String @id @default(cuid())
+  tournamentId String
+  teamId       String
 
   // Snapshot fields (freeze branding per event)
-  displayName    String     // shown in brackets/brackets pages, e.g., "Paragon"
-  logoUrl        String?
+  displayName String // shown in brackets/brackets pages, e.g., "Paragon"
+  logoUrl     String?
 
   // Management
-  captainUserId  String?    // optional; if captain deletes account, we keep the entry
-  seed           Int?
-  checkedInAt    DateTime?
-  lockedAt       DateTime?  // roster lock
+  captainUserId String? // optional; if captain deletes account, we keep the entry
+  seed          Int?
+  checkedInAt   DateTime?
+  lockedAt      DateTime? // roster lock
 
-  tournament     Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  team           Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  captain        User?      @relation("EntryCaptain", fields: [captainUserId], references: [id], onDelete: SetNull)
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  captain    User?      @relation("EntryCaptain", fields: [captainUserId], references: [id], onDelete: SetNull)
 
-  members        EntryMember[]
+  members EntryMember[]
 
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  matchesAsTeamA Match[] @relation("MatchTeamA")
+  matchesAsTeamB Match[] @relation("MatchTeamB")
+  matchesWon     Match[] @relation("MatchWinner")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Prevent duplicate registration of same team in same tourney
   @@unique([tournamentId, teamId])
-
   // Fast lookups
   @@index([tournamentId])
   @@index([teamId])
@@ -187,23 +200,60 @@ model TournamentEntry {
 }
 
 model EntryMember {
-  id        String          @id @default(cuid())
-  entryId   String
-  userId    String
+  id      String @id @default(cuid())
+  entryId String
+  userId  String
 
   // Snapshot the identity used for this event
-  embarkId  String
-  platform  Platform
-  region    Region
-  role      EntryMemberRole @default(PLAYER)
+  embarkId String
+  platform Platform
+  region   Region
+  role     EntryMemberRole @default(PLAYER)
 
-  entry     TournamentEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entry TournamentEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime        @default(now())
+  createdAt DateTime @default(now())
 
   // Each user appears at most once per entry
   @@unique([entryId, userId])
   @@index([userId])
   @@index([platform, region])
+}
+
+// -----------------------------------------
+// Matches (per-tournament)
+// -----------------------------------------
+
+model Match {
+  id           String      @id @default(cuid())
+  tournamentId String
+  round        Int // 1, 2, ...
+  bestOf       Int         @default(1)
+  status       MatchStatus @default(SCHEDULED)
+
+  teamAEntryId  String
+  teamBEntryId  String
+  winnerEntryId String?
+
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  reportedById String?
+  notes        String?
+
+  tournament Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  teamA      TournamentEntry  @relation("MatchTeamA", fields: [teamAEntryId], references: [id], onDelete: Cascade)
+  teamB      TournamentEntry  @relation("MatchTeamB", fields: [teamBEntryId], references: [id], onDelete: Cascade)
+  winner     TournamentEntry? @relation("MatchWinner", fields: [winnerEntryId], references: [id], onDelete: SetNull)
+  reportedBy User?            @relation("MatchReportedBy", fields: [reportedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tournamentId, round])
+  @@index([teamAEntryId])
+  @@index([teamBEntryId])
+  @@index([winnerEntryId])
 }
