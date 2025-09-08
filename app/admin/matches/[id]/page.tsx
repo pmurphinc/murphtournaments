@@ -21,7 +21,7 @@ async function updateMatch(formData: FormData): Promise<void> {
 
   if (!id) throw new Error("Missing id");
 
-  await prisma.match.update({
+  await prisma.tournamentEntry.update({
     where: { id },
     data: {
       tournamentId,
