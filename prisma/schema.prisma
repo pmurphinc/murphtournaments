@@ -1,127 +1,209 @@
+// -----------------------------------------
+// schema.prisma  — Murph Tournaments (Drop-in)
+// -----------------------------------------
+
+// Prisma Client for TypeScript/Node
 generator client {
   provider = "prisma-client-js"
 }
 
+// Supabase / Postgres connection
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id            String       @id @default(cuid())
-  createdAt     DateTime     @default(now())
-  discordId     String       @unique
-  email         String?
-  role          Role         @default(USER)
-  answers       Answer[]
-  hostedMatches Match[]      @relation("HostedMatches")
-  questions     Question[]
-  captainOf     Team[]       @relation("Captain")
-  teams         TeamMember[]
+// -----------------------------------------
+// Enums
+// -----------------------------------------
+
+enum TeamRole {
+  OWNER
+  MANAGER
+  PLAYER
 }
 
-model Tournament {
-  id             String           @id @default(cuid())
-  name           String
-  slug           String           @unique
-  status         TournamentStatus @default(DRAFT)
-  startsAt       DateTime?
-  checkInOpensAt DateTime?
-  rosterLockAt   DateTime?
-  rules          String?
-  maxTeams       Int?
-  matches        Match[]
-  teams          Team[]
+enum EntryMemberRole {
+  PLAYER
+  SUB
 }
 
-model Team {
-  id           String       @id @default(cuid())
-  name         String       @unique
-  tournamentId String
-  captainId    String
-  approved     Boolean      @default(false)
-  notes        String?
-  captain      User         @relation("Captain", fields: [captainId], references: [id])
-  tournament   Tournament   @relation(fields: [tournamentId], references: [id])
-  members      TeamMember[]
+enum Platform {
+  PC
+  XBOX
+  PLAYSTATION
 }
 
-model TeamMember {
-  id          String  @id @default(cuid())
-  userId      String?
-  teamId      String
-  displayName String
-  embarkId    String
-  isSub       Boolean @default(false)
-  team        Team    @relation(fields: [teamId], references: [id])
-  user        User?   @relation(fields: [userId], references: [id])
-}
-
-model Question {
-  id               String   @id @default(cuid())
-  authorId         String
-  tournamentId     String?
-  title            String
-  body             String
-  tags             String[]
-  status           QStatus  @default(OPEN)
-  officialAnswerId String?
-  answers          Answer[]
-  author           User     @relation(fields: [authorId], references: [id])
-}
-
-model Answer {
-  id         String   @id @default(cuid())
-  questionId String
-  authorId   String
-  body       String
-  official   Boolean  @default(false)
-  author     User     @relation(fields: [authorId], references: [id])
-  question   Question @relation(fields: [questionId], references: [id])
-}
-
-model Match {
-  id           String      @id @default(cuid())
-  tournamentId String
-  round        Int
-  bestOf       Int
-  startAt      DateTime?
-  status       MatchStatus @default(PENDING)
-  hostId       String?
-  teamAId      String?
-  teamBId      String?
-  scoreA       Int?
-  scoreB       Int?
-  host         User?       @relation("HostedMatches", fields: [hostId], references: [id])
-  tournament   Tournament  @relation(fields: [tournamentId], references: [id])
-}
-
-enum Role {
-  USER
-  STAFF
-  ADMIN
+enum Region {
+  NA
+  EU
+  APAC
+  SA
+  MEA
 }
 
 enum TournamentStatus {
-  DRAFT
+  ANNOUNCED
   REGISTRATION
-  LOCKED
-  CHECKIN
   LIVE
   FINISHED
-  ARCHIVED
+  CANCELED
 }
 
-enum QStatus {
-  OPEN
-  ANSWERED
-  CLOSED
+// -----------------------------------------
+// Core Identity
+// -----------------------------------------
+
+model User {
+  id             String            @id @default(cuid())
+  // Auth & identity
+  discordId      String            @unique
+  displayName    String
+  avatarUrl      String?
+
+  // Relationships
+  embarkProfiles EmbarkIdentity[]
+  memberships    TeamMember[]
+  entryMembers   EntryMember[]
+  ownedTeams     Team[]            @relation("TeamOwner")
+  // A user can captain many entries (optional FK on TournamentEntry)
+  captainEntries TournamentEntry[] @relation("EntryCaptain")
+
+  // Timestamps
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([displayName])
 }
 
-enum MatchStatus {
-  PENDING
-  READY
-  LIVE
-  DONE
-  VOID
+model EmbarkIdentity {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // e.g. "Player#1234" (exact string the game uses)
+  embarkId  String
+  platform  Platform
+  region    Region
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, embarkId])
+  @@index([platform, region])
+}
+
+// -----------------------------------------
+// Teams (global, reusable across tournaments)
+// -----------------------------------------
+
+model Team {
+  id        String         @id @default(cuid())
+  name      String
+  slug      String         @unique
+  logoUrl   String?
+  ownerId   String
+  owner     User           @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+
+  members   TeamMember[]
+  entries   TournamentEntry[]
+
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([name])
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      TeamRole @default(PLAYER)
+
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([teamId, userId]) // a user can’t join same team twice
+  @@index([userId])
+  @@index([teamId, role])
+}
+
+// -----------------------------------------
+// Tournaments & Entries (per-event snapshot)
+// -----------------------------------------
+
+model Tournament {
+  id        String           @id @default(cuid())
+  title     String
+  startsAt  DateTime
+  status    TournamentStatus @default(ANNOUNCED)
+
+  // keep format flexible (e.g., "DE-BO1", "DE-BO3", "FinalRound-3v3", "Cashout->Final")
+  format    String
+  notes     String?
+
+  entries   TournamentEntry[]
+
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([startsAt])
+  @@index([status])
+}
+
+model TournamentEntry {
+  id             String     @id @default(cuid())
+  tournamentId   String
+  teamId         String
+
+  // Snapshot fields (freeze branding per event)
+  displayName    String     // shown in brackets/brackets pages, e.g., "Paragon"
+  logoUrl        String?
+
+  // Management
+  captainUserId  String?    // optional; if captain deletes account, we keep the entry
+  seed           Int?
+  checkedInAt    DateTime?
+  lockedAt       DateTime?  // roster lock
+
+  tournament     Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team           Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  captain        User?      @relation("EntryCaptain", fields: [captainUserId], references: [id], onDelete: SetNull)
+
+  members        EntryMember[]
+
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  // Prevent duplicate registration of same team in same tourney
+  @@unique([tournamentId, teamId])
+
+  // Fast lookups
+  @@index([tournamentId])
+  @@index([teamId])
+  @@index([captainUserId])
+}
+
+model EntryMember {
+  id        String          @id @default(cuid())
+  entryId   String
+  userId    String
+
+  // Snapshot the identity used for this event
+  embarkId  String
+  platform  Platform
+  region    Region
+  role      EntryMemberRole @default(PLAYER)
+
+  entry     TournamentEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime        @default(now())
+
+  // Each user appears at most once per entry
+  @@unique([entryId, userId])
+  @@index([userId])
+  @@index([platform, region])
 }
