@@ -28,11 +28,14 @@ export default async function TournamentHome({ params }: { params: { id: string 
         <Link className="hover:text-cyber-neon" href={`/t/${t.id}/teams`}>Teams</Link>
       </div>
       <section>
-        <h2 className="text-xl mb-2">Matches</h2>
         <DataTable>
           <thead>
             <tr className="text-left">
-              <th className="p-2">Match</th><th className="p-2">Round</th><th className="p-2">BestOf</th><th className="p-2">Host</th><th className="p-2">Status</th>
+              <th className="p-2">Match</th>
+              <th className="p-2">Round</th>
+              <th className="p-2">BestOf</th>
+              <th className="p-2">Status</th>
+              <th className="p-2">Started</th>
             </tr>
           </thead>
           <tbody>
@@ -41,8 +44,8 @@ export default async function TournamentHome({ params }: { params: { id: string 
                 <td className="p-2">{m.id.slice(0,6)}</td>
                 <td className="p-2">{m.round}</td>
                 <td className="p-2">BO{m.bestOf}</td>
-                <td className="p-2">{m.hostId ?? "-"}</td>
                 <td className="p-2">{m.status}</td>
+                <td className="p-2">{m.startedAt ? new Date(m.startedAt).toLocaleString() : "—"}</td>
               </tr>
             ))}
           </tbody>

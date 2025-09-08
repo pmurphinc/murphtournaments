@@ -38,10 +38,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       try {
         if (!profile) return true;
         const discordId = String((profile as any).id);
+        const displayName = (profile as any).global_name ?? (profile as any).username ?? "Player";
+        const avatarUrl = (profile as any).image_url ?? null;
         await prisma.user.upsert({
           where: { discordId },
-          update: {},
-          create: { discordId },
+          update: {
+            displayName,
+            avatarUrl,
+          },
+          create: {
+            discordId,
+            displayName,
+            avatarUrl,
+          },
         });
         return true;
       } catch (err) {

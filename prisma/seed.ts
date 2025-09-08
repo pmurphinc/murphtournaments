@@ -1,63 +1,89 @@
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
+
+function slugify(s: string) {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+}
+
 async function main() {
-  const hosts = await Promise.all([
-    prisma.user.upsert({ where: { discordId: "jacob#host" }, update: {}, create: { discordId: "jacob#host" } }),
-    prisma.user.upsert({ where: { discordId: "megatron#host" }, update: {}, create: { discordId: "megatron#host" } }),
-    prisma.user.upsert({ where: { discordId: "trav#host" }, update: {}, create: { discordId: "trav#host" } }),
-    prisma.user.upsert({ where: { discordId: "murph#host" }, update: {}, create: { discordId: "murph#host" } })
+  // Hosts / Users
+  const [jacob, megatron, trav, murph] = await Promise.all([
+    prisma.user.upsert({ where: { discordId: "jacob#host" }, update: {}, create: { discordId: "jacob#host", displayName: "Jacob" } }),
+    prisma.user.upsert({ where: { discordId: "megatron#host" }, update: {}, create: { discordId: "megatron#host", displayName: "Megatron" } }),
+    prisma.user.upsert({ where: { discordId: "trav#host" }, update: {}, create: { discordId: "trav#host", displayName: "Trav" } }),
+    prisma.user.upsert({ where: { discordId: "murph#host" }, update: {}, create: { discordId: "murph#host", displayName: "Murph" } }),
   ]);
+
+  // Tournament
   const t = await prisma.tournament.create({
     data: {
       title: "September Showdown",
-      status: "REGISTRATION",
-      startsAt: new Date(Date.now() + 1000*60*60*24),
-      rules: "Be nice. Follow THE FINALS tournament rules.",
-      maxTeams: 16
-    }
+      startsAt: new Date(),
+      status: "ANNOUNCED",
+      format: "DE-BO1",
+      notes: "Seed data",
+    },
   });
-  const cap = hosts[3];
+
+  // Teams (global)
   const teamDog = await prisma.team.create({
-    data: {
-      name: "Team Dog",
-      members: {
-        create: [
-          { displayName: "nuufle", embarkId: "embark-001" },
-          { displayName: "junlym", embarkId: "embark-002" },
-          { displayName: "bongo", embarkId: "embark-003" },
-          { displayName: "spare", embarkId: "embark-004", isSub: true }
-        ]
-      }
-    }
+    data: { name: "Team Dog", slug: slugify("Team Dog"), owner: { connect: { id: murph.id } } },
   });
   const teamFAFO = await prisma.team.create({
-    data: {
-      name: "FAFO",
-      members: { create: [
-        { displayName: "mojoflojo", embarkId: "embark-101" },
-        { displayName: "jon", embarkId: "embark-102" },
-        { displayName: "blazing", embarkId: "embark-103" }
-      ] }
-    }
+    data: { name: "Team FAFO", slug: slugify("Team FAFO"), owner: { connect: { id: murph.id } } },
   });
+
+  // Tournament Entries (per-event snapshot + roster)
   const entryDog = await prisma.tournamentEntry.create({
     data: {
       tournamentId: t.id,
       teamId: teamDog.id,
-      displayName: teamDog.name,
-      members: { connect: teamDog.members.map(m => ({ id: m.id })) }
-    }
+      displayName: "Team Dog",
+      captainUserId: murph.id,
+      members: {
+        create: [
+          { userId: murph.id,     embarkId: "embark-001", platform: "PC", region: "NA", role: "PLAYER" },
+          { userId: jacob.id,     embarkId: "embark-002", platform: "PC", region: "NA", role: "PLAYER" },
+          { userId: megatron.id,  embarkId: "embark-003", platform: "PC", region: "NA", role: "PLAYER" },
+        ],
+      },
+    },
   });
+
   const entryFAFO = await prisma.tournamentEntry.create({
     data: {
       tournamentId: t.id,
       teamId: teamFAFO.id,
-      displayName: teamFAFO.name,
-      members: { connect: teamFAFO.members.map(m => ({ id: m.id })) }
-    }
+      displayName: "Team FAFO",
+      captainUserId: trav.id,
+      members: {
+        create: [
+          { userId: trav.id,      embarkId: "embark-101", platform: "PC", region: "NA", role: "PLAYER" },
+          { userId: jacob.id,     embarkId: "embark-102", platform: "PC", region: "NA", role: "PLAYER" },
+          { userId: megatron.id,  embarkId: "embark-103", platform: "PC", region: "NA", role: "PLAYER" },
+        ],
+      },
+    },
   });
-  await prisma.match.createMany({ data: [
-    { tournamentId: t.id, teamAEntryId: entryDog.id, teamBEntryId: entryFAFO.id, round: 1, bestOf: 1, status: "SCHEDULED", scheduledAt: new Date(Date.now() + 1000*60*60*25) },
+
+  // One match
+  await prisma.match.create({
+    data: {
+      tournamentId: t.id,
+      round: 1,
+      bestOf: 1,
+      status: "SCHEDULED",
+      teamAEntryId: entryDog.id,
+      teamBEntryId: entryFAFO.id,
+    },
+  });
+
+  console.log("Seed complete:", { users: 4, tournamentTitle: t.title, tournamentId: t.id });
+}
+
+main()
+  .catch((e) => { console.error(e); process.exit(1); })
+  .finally(async () => { await prisma.$disconnect(); });
     { tournamentId: t.id, teamAEntryId: entryFAFO.id, teamBEntryId: entryDog.id, round: 2, bestOf: 1, status: "SCHEDULED", scheduledAt: new Date(Date.now() + 1000*60*60*26) }
   ]});
   console.log("Seed complete:", { hosts: hosts.length, tournament: t.slug });
