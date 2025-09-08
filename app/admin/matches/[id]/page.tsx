@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import AdminMatchForm from "@/components/Admin/AdminMatchForm";
+type Option = { id: string; name: string };
 // ----- Update server action -----
 async function updateMatch(formData: FormData): Promise<void> {
   "use server";
@@ -65,16 +66,23 @@ export default async function EditMatchPage({ params }: { params: { id: string }
     return <div className="space-y-2"><h1 className="text-2xl">Edit Match</h1><p>Please sign in.</p></div>;
   }
 
-  const [m, tournaments, teams] = await Promise.all([
-    prisma.match.findUnique({
-      where: { id: params.id },
-      include: { tournament: { select: { id: true, title: true } } },
+  const m = await prisma.match.findUnique({
+    where: { id: params.id },
+    include: { tournament: { select: { id: true, title: true } } },
+  });
+  if (!m) return notFound();
+
+  const [rawTournaments, rawTeams] = await Promise.all([
+    prisma.tournament.findMany({ select: { id: true, title: true }, orderBy: { startsAt: "desc" } }),
+    prisma.tournamentEntry.findMany({
+      where: { tournamentId: m.tournamentId },
+      select: { id: true, displayName: true },
+      orderBy: { seed: "asc" },
     }),
-    prisma.tournament.findMany({ select: { id: true, title: true }, orderBy: { title: "asc" } }),
-    prisma.team.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
-  if (!m) return notFound();
+  const tournaments: Option[] = rawTournaments.map(t => ({ id: t.id, name: t.title }));
+  const teams: Option[] = rawTeams.map(e => ({ id: e.id, name: e.displayName }));
 
   const initial = {
     id: m.id,
