@@ -1,8 +1,11 @@
 
+
 'use server';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
 export async function handleSignup(formData: FormData) {
-  const supabase = (await import("@/lib/supabase")).createClient();
+  // Use server-only admin client
+  const supabase = getSupabaseAdmin();
 
   // Extract form data
   const teamName = formData.get("teamName") as string;
@@ -39,6 +42,13 @@ export async function handleSignup(formData: FormData) {
     // Log full error object and response
     console.error("Supabase team insert error:", teamError);
     console.error("Supabase team insert response:", team);
+    if (teamError) {
+      console.error('Error code:', teamError.code);
+      console.error('Error details:', teamError.details);
+      console.error('Error hint:', teamError.hint);
+      console.error('Error schema:', teamError.schema);
+      console.error('Error table:', teamError.table);
+    }
     throw new Error(`Failed to create team: ${teamError?.message || "Unknown error"}`);
   }
 
