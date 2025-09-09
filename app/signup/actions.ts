@@ -43,11 +43,9 @@ export async function handleSignup(formData: FormData) {
     console.error("Supabase team insert error:", teamError);
     console.error("Supabase team insert response:", team);
     if (teamError) {
-      console.error('Error code:', teamError.code);
-      console.error('Error details:', teamError.details);
-      console.error('Error hint:', teamError.hint);
-      console.error('Error schema:', teamError.schema);
-      console.error('Error table:', teamError.table);
+  console.error('Error code:', teamError.code);
+  console.error('Error details:', teamError.details);
+  console.error('Error hint:', teamError.hint);
     }
     throw new Error(`Failed to create team: ${teamError?.message || "Unknown error"}`);
   }
