@@ -22,7 +22,7 @@ export default async function InviteToTeamPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-4">
       <h1 className="text-2xl font-semibold">Invite User to Team</h1>
-      <p className="text-zinc-300">Share this link with your friend. When they sign up, they'll be added to your team:</p>
+  <p className="text-zinc-300">Share this link with your friend. When they sign up, they&apos;ll be added to your team:</p>
       <div className="flex items-center gap-2">
         <input
           type="text"
