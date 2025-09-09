@@ -1,259 +1,95 @@
-// -----------------------------------------
-// schema.prisma  — Murph Tournaments (Drop-in)
-// -----------------------------------------
-
-// Prisma Client for TypeScript/Node
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
 
-// Supabase / Postgres connection
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// -----------------------------------------
-// Enums
-// -----------------------------------------
-
-enum TeamRole {
-  OWNER
-  MANAGER
-  PLAYER
-}
-
-enum EntryMemberRole {
-  PLAYER
-  SUB
-}
-
-enum Platform {
-  PC
-  XBOX
-  PLAYSTATION
-}
-
-enum Region {
-  NA
-  EU
-  APAC
-  SA
-  MEA
-}
-
-enum TournamentStatus {
-  ANNOUNCED
-  REGISTRATION
-  LIVE
-  FINISHED
-  CANCELED
-}
-
-enum MatchStatus {
-  SCHEDULED
-  LIVE
-  COMPLETE
-  FORFEIT
-  CANCELED
-}
-
-// -----------------------------------------
-// Core Identity
-// -----------------------------------------
-
 model User {
-  id          String  @id @default(cuid())
-  // Auth & identity
-  discordId   String  @unique
-  displayName String
-  avatarUrl   String?
+  id              String       @id @default(cuid()) @db.Text
+  name            String?      @db.Text
+  email           String?      @unique @db.Text
+  emailVerified   DateTime?
+  image           String?      @db.Text
+  accounts        Account[]
+  sessions        Session[]
+  teamMemberships TeamMember[] @relation("UserTeamMemberships")
+  Team            Team[]
 
-  // Relationships
-  embarkProfiles  EmbarkIdentity[]
-  memberships     TeamMember[]
-  entryMembers    EntryMember[]
-  ownedTeams      Team[]            @relation("TeamOwner")
-  // A user can captain many entries (optional FK on TournamentEntry)
-  captainEntries  TournamentEntry[] @relation("EntryCaptain")
-  reportedMatches Match[]           @relation("MatchReportedBy")
-
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([displayName])
+  @@map("users")
 }
 
-model EmbarkIdentity {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+model Account {
+  id                String  @id @default(cuid()) @db.Text
+  userId            String  @db.Text
+  type              String  @db.Text
+  provider          String  @db.Text
+  providerAccountId String  @db.Text
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String? @db.Text
+  scope             String? @db.Text
+  id_token          String? @db.Text
+  session_state     String? @db.Text
 
-  // e.g. "Player#1234" (exact string the game uses)
-  embarkId  String
-  platform  Platform
-  region    Region
-  isPrimary Boolean  @default(false)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-
-  @@unique([userId, embarkId])
-  @@index([platform, region])
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
 }
 
-// -----------------------------------------
-// Teams (global, reusable across tournaments)
-// -----------------------------------------
+model Session {
+  id           String   @id @default(cuid()) @db.Text
+  sessionToken String   @unique @db.Text
+  userId       String   @db.Text
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String   @db.Text
+  token      String   @unique @db.Text
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
 
 model Team {
-  id      String  @id @default(cuid())
-  name    String
-  slug    String  @unique
-  logoUrl String?
-  ownerId String
-  owner   User    @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-
-  members TeamMember[]
-  entries TournamentEntry[]
-
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String   @db.Text
+  slug      String   @unique @db.Text
+  ownerId   String   @db.Text
+  logoUrl   String?  @db.Text
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now())
 
-  @@index([name])
+  owner   User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members TeamMember[]
+
+  @@index([ownerId])
+  @@map("teams")
 }
 
 model TeamMember {
-  id     String   @id @default(cuid())
-  teamId String
-  userId String
-  role   TeamRole @default(PLAYER)
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teamId    String   @db.Uuid
+  userId    String   @db.Text
+  role      String?  @db.Text
+  createdAt DateTime @default(now())
 
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation("UserTeamMemberships", fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-
-  @@unique([teamId, userId]) // a user can’t join same team twice
-  @@index([userId])
-  @@index([teamId, role])
-}
-
-// -----------------------------------------
-// Tournaments & Entries (per-event snapshot)
-// -----------------------------------------
-
-model Tournament {
-  id       String           @id @default(cuid())
-  title    String
-  startsAt DateTime
-  status   TournamentStatus @default(ANNOUNCED)
-
-  // keep format flexible (e.g., "DE-BO1", "DE-BO3", "FinalRound-3v3", "Cashout->Final")
-  format String
-  notes  String?
-
-  entries TournamentEntry[]
-  matches Match[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([startsAt])
-  @@index([status])
-}
-
-model TournamentEntry {
-  id           String @id @default(cuid())
-  tournamentId String
-  teamId       String
-
-  // Snapshot fields (freeze branding per event)
-  displayName String // shown in brackets/brackets pages, e.g., "Paragon"
-  logoUrl     String?
-
-  // Management
-  captainUserId String? // optional; if captain deletes account, we keep the entry
-  seed          Int?
-  checkedInAt   DateTime?
-  lockedAt      DateTime? // roster lock
-
-  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  captain    User?      @relation("EntryCaptain", fields: [captainUserId], references: [id], onDelete: SetNull)
-
-  members EntryMember[]
-
-  matchesAsTeamA Match[] @relation("MatchTeamA")
-  matchesAsTeamB Match[] @relation("MatchTeamB")
-  matchesWon     Match[] @relation("MatchWinner")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Prevent duplicate registration of same team in same tourney
-  @@unique([tournamentId, teamId])
-  // Fast lookups
-  @@index([tournamentId])
+  @@unique([teamId, userId])
   @@index([teamId])
-  @@index([captainUserId])
-}
-
-model EntryMember {
-  id      String @id @default(cuid())
-  entryId String
-  userId  String
-
-  // Snapshot the identity used for this event
-  embarkId String
-  platform Platform
-  region   Region
-  role     EntryMemberRole @default(PLAYER)
-
-  entry TournamentEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  // Each user appears at most once per entry
-  @@unique([entryId, userId])
   @@index([userId])
-  @@index([platform, region])
-}
-
-// -----------------------------------------
-// Matches (per-tournament)
-// -----------------------------------------
-
-model Match {
-  id           String      @id @default(cuid())
-  tournamentId String
-  round        Int // 1, 2, ...
-  bestOf       Int         @default(1)
-  status       MatchStatus @default(SCHEDULED)
-
-  teamAEntryId  String
-  teamBEntryId  String
-  winnerEntryId String?
-
-  scheduledAt DateTime?
-  startedAt   DateTime?
-  completedAt DateTime?
-
-  reportedById String?
-  notes        String?
-
-  tournament Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  teamA      TournamentEntry  @relation("MatchTeamA", fields: [teamAEntryId], references: [id], onDelete: Cascade)
-  teamB      TournamentEntry  @relation("MatchTeamB", fields: [teamBEntryId], references: [id], onDelete: Cascade)
-  winner     TournamentEntry? @relation("MatchWinner", fields: [winnerEntryId], references: [id], onDelete: SetNull)
-  reportedBy User?            @relation("MatchReportedBy", fields: [reportedById], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([tournamentId, round])
-  @@index([teamAEntryId])
-  @@index([teamBEntryId])
-  @@index([winnerEntryId])
+  @@map("team_members")
 }
