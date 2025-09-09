@@ -7,7 +7,7 @@ import Providers from "./providers"; // <-- added
 
 export const metadata: Metadata = {
   title: "Murph Tournaments",
-  description: "Frictionless sign-ups, Q&A, and live ops for THE FINALS.",
+  description: "Competitive tournament platform for THE FINALS: team registration, brackets, and live results. Community support and Q&A are handled on Discord.",
 };
 
 export const viewport: Viewport = {
