@@ -87,9 +87,19 @@ model TeamMember {
 
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user User @relation("UserTeamMemberships", fields: [userId], references: [id], onDelete: Cascade)
+}
 
-  @@unique([teamId, userId])
-  @@index([teamId])
-  @@index([userId])
-  @@map("team_members")
+model Tournament {
+  id        String   @id @default(cuid()) @db.Text
+  title     String   @db.Text
+  startsAt  DateTime
+  status    String   @db.Text
+  entries   Entry[]
+}
+
+model Entry {
+  id           String     @id @default(cuid()) @db.Text
+  playerName   String     @db.Text
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournamentId String     @db.Text
 }
