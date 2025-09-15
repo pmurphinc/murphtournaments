@@ -22,14 +22,14 @@ async function updateMatch(formData: FormData): Promise<void> {
 
   if (!id) throw new Error("Missing id");
 
-  // Safety checks
-  const [entryA, entryB] = await Promise.all([
-    prisma.tournamentEntry.findUnique({ where: { id: teamAId }, select: { tournamentId: true } }),
-    prisma.tournamentEntry.findUnique({ where: { id: teamBId }, select: { tournamentId: true } }),
+// Safety checks: ensure both teams exist and are in the same tournament
+  const [teamA, teamB] = await Promise.all([
+    prisma.team.findUnique({ where: { id: teamAId }, select: { tournamentId: true } }),
+    prisma.team.findUnique({ where: { id: teamBId }, select: { tournamentId: true } }),
   ]);
-  if (!entryA || !entryB) throw new Error("Team entries not found");
-  if (entryA.tournamentId !== tournamentId || entryB.tournamentId !== tournamentId) {
-    throw new Error("Both entries must belong to the same tournament");
+  if (!teamA || !teamB) throw new Error("Teams not found");
+  if (teamA.tournamentId !== teamB.tournamentId) {
+    throw new Error("Teams must belong to the same tournament");
   }
   if (teamAId === teamBId) throw new Error("A team cannot play itself");
 
