@@ -113,6 +113,7 @@ model Tournament {
   startsAt  DateTime
   status    String   @db.Text
   entries   Entry[]
+  matches   Match[]
 }
 
 model Entry {
