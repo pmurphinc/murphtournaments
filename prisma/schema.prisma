@@ -1,124 +1,60 @@
-// prisma/schema.prisma
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+enum UserRank { USER ADMIN }
+enum Region { NA EU SA APAC }
+enum Platform { PC XBOX PLAYSTATION }
+enum MainClass { LIGHT MEDIUM HEAVY }
+enum TournamentStatus { REG_OPEN REG_CLOSED IN_PROGRESS CHECK_IN FINISHED }
 
 model User {
-  id              String       @id @default(cuid()) @db.Text
-  name            String?      @db.Text
-  email           String?      @unique @db.Text
-  emailVerified   DateTime?
-  image           String?      @db.Text
-  accounts        Account[]
-  sessions        Session[]
-  teamMemberships TeamMember[] @relation("UserTeamMemberships")
-  Team            Team[]
-
-  @@map("users")
-}
-
-model Account {
-  id                String  @id @default(cuid()) @db.Text
-  userId            String  @db.Text
-  type              String  @db.Text
-  provider          String  @db.Text
-  providerAccountId String  @db.Text
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String? @db.Text
-  scope             String? @db.Text
-  id_token          String? @db.Text
-  session_state     String? @db.Text
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@map("accounts")
-}
-
-model Session {
-  id           String   @id @default(cuid()) @db.Text
-  sessionToken String   @unique @db.Text
-  userId       String   @db.Text
-  expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("sessions")
-}
-
-model VerificationToken {
-  identifier String   @db.Text
-  token      String   @unique @db.Text
-  expires    DateTime
-
-  @@unique([identifier, token])
-  @@map("verification_tokens")
-}
-
-model Match {
-  id         String   @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
-  tournamentId String @db.Uuid
-  teamAId    String   @db.Uuid
-  teamBId    String   @db.Uuid
-  scheduledAt DateTime
-  result     String?  @db.Text
+  id         String   @id @default(cuid())
+  discordId  String   @unique
+  rank       UserRank @default(USER)
+  embarkId   String?
+  region     Region?
+  platform   Platform?
+  mainClass  MainClass?
+  leaderOfTeams  Team[]   @relation("TeamLeader")
+  member1OfTeams Team[]   @relation("Member1")
+  member2OfTeams Team[]   @relation("Member2")
+  member3OfTeams Team[]   @relation("Member3")
+  subOfTeams     Team[]   @relation("Substitute")
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now())
-
-  tournament Tournament @relation(fields: [tournamentId], references: [id])
-  teamA      Team      @relation("TeamA", fields: [teamAId], references: [id])
-  teamB      Team      @relation("TeamB", fields: [teamBId], references: [id])
+  updatedAt  DateTime @updatedAt
 }
 
 model Team {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name      String   @db.Text
-  slug      String   @unique @db.Text
-  ownerId   String   @db.Text
-  logoUrl   String?  @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
-    tournamentId String   @db.Uuid
-
-  owner   User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  members TeamMember[]
-  matchesAsTeamA Match[] @relation("TeamA")
-  matchesAsTeamB Match[] @relation("TeamB")
-
-  @@index([ownerId])
-  @@map("teams")
-}
-
-model TeamMember {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  teamId    String   @db.Uuid
-  userId    String   @db.Text
-  role      String?  @db.Text
-  createdAt DateTime @default(now())
-
-  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user User @relation("UserTeamMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  id           String  @id @default(cuid())
+  name         String  @unique
+  logoUrl      String?
+  leader       User    @relation("TeamLeader", fields: [leaderId], references: [id])
+  leaderId     String
+  member1      User?   @relation("Member1", fields: [member1Id], references: [id])
+  member1Id    String?
+  member2      User?   @relation("Member2", fields: [member2Id], references: [id])
+  member2Id    String?
+  member3      User?   @relation("Member3", fields: [member3Id], references: [id])
+  member3Id    String?
+  substitute   User?   @relation("Substitute", fields: [substituteId], references: [id])
+  substituteId String?
+  tournament   Tournament? @relation(fields: [tournamentId], references: [id])
+  tournamentId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Tournament {
-  id        String   @id @default(cuid()) @db.Text
-  title     String   @db.Text
-  startsAt  DateTime
-  status    String   @db.Text
-  entries   Entry[]
-  matches   Match[]
-}
-
-model Entry {
-  id           String     @id @default(cuid()) @db.Text
-  playerName   String     @db.Text
-  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  tournamentId String     @db.Text
+  id            String            @id @default(cuid())
+  name          String            @unique
+  status        TournamentStatus
+  startAt       DateTime?
+  numberOfTeams Int?
+  gameMode      String?
+  format        String?
+  eliminations  String?
+  teams         Team[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
