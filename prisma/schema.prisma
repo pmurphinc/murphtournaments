@@ -89,6 +89,8 @@ model Team {
 
   owner   User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   members TeamMember[]
+  matchesAsTeamA Match[] @relation("TeamA")
+  matchesAsTeamB Match[] @relation("TeamB")
 
   @@index([ownerId])
   @@map("teams")
