@@ -62,6 +62,21 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
+model Match {
+  id         String   @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  tournamentId String @db.Uuid
+  teamAId    String   @db.Uuid
+  teamBId    String   @db.Uuid
+  scheduledAt DateTime
+  result     String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id])
+  teamA      Team      @relation("TeamA", fields: [teamAId], references: [id])
+  teamB      Team      @relation("TeamB", fields: [teamBId], references: [id])
+}
+
 model Team {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name      String   @db.Text
