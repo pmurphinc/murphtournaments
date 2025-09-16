@@ -43,11 +43,11 @@ export async function handleSignup(formData: FormData) {
     console.error("Supabase team insert error:", teamError);
     console.error("Supabase team insert response:", team);
     if (teamError) {
-  console.error('Error code:', teamError.code);
-  console.error('Error details:', teamError.details);
-  console.error('Error hint:', teamError.hint);
+      console.error('Error code:', teamError.code);
+      console.error('Error details:', teamError.details);
+      console.error('Error hint:', teamError.hint);
     }
-    throw new Error(`Failed to create team: ${teamError?.message || "Unknown error"}`);
+    return { ok: false, error: `Failed to create team: ${teamError?.message || "Unknown error"}` };
   }
 
   // Add members
@@ -75,7 +75,7 @@ export async function handleSignup(formData: FormData) {
   }
 
   // Handle invite link (optional, just return teamId for now)
-  return { teamId: team.id };
+  return { ok: true, teamId: team.id };
 }
 
 export async function signInWithDiscord() {

@@ -24,7 +24,7 @@ export default async function DashboardPage() {
     ? {
   name: data.tournament.name, // use name as name
         status: data.tournament.status as any, // cast to TournyStatus
-  startAt: data.tournament.startAt ?? null, // use startAt
+  startsAt: data.tournament.startAt ?? null, // for StatusBanner compatibility
         checkInOpensAt: null,
       }
     : null;

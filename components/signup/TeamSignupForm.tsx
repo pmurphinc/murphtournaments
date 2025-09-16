@@ -11,7 +11,7 @@ type Props = {
   tournaments: Tournament[];
   captainDiscordName: string;
   userKey: string; // user id or discord id
-  action: (formData: FormData) => Promise<{ teamId: any } | void>; // server action passed from the page
+  action: (formData: FormData) => Promise<{ ok: boolean; error?: string; teamId?: any } | void>; // server action passed from the page
 };
 
 // Optional per-Embark choices

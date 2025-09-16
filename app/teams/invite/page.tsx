@@ -4,16 +4,15 @@ import { prisma } from "@/lib/prisma";
 export default async function InviteToTeamPage() {
   const session = await auth();
   if (!session?.user) return <div className="p-4">Please sign in.</div>;
-  // Find the user's team
+
+  // Find the user's team (new schema: user has one team, no members array)
   const userId = (session.user as any).id;
   const team = await prisma.team.findFirst({
-    where: {
-      members: { some: { userId } },
-    },
+    where: { ownerId: userId },
   });
 
   if (!team) {
-    return <div className="p-4">You are not a member of any team.</div>;
+    return <div className="p-4">You do not own a team.</div>;
   }
 
   // Generate invite link (simple: /registration?invite=teamId)

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 
@@ -33,7 +32,5 @@ export async function GET() {
       "Content-Type": "text/csv",
       "Content-Disposition": "attachment; filename=teams.csv"
     },
-  });
-}
   });
 }
