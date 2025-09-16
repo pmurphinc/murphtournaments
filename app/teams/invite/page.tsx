@@ -8,7 +8,7 @@ export default async function InviteToTeamPage() {
   // Find the user's team (new schema: user has one team, no members array)
   const userId = (session.user as any).id;
   const team = await prisma.team.findFirst({
-    where: { ownerId: userId },
+    where: { leaderId: userId },
   });
 
   if (!team) {
