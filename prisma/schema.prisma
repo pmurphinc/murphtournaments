@@ -1,3 +1,15 @@
+enum Region {
+  NA
+  EU
+  APAC
+}
+
+enum Platform {
+  PC
+  Xbox
+  PlayStation
+}
+
 enum UserRank {
   USER
   ADMIN
@@ -21,16 +33,21 @@ generator client {
 }
 
 model User {
-  id             String   @id @default(cuid())
-  discordId      String   @unique
-  rank           UserRank @default(USER)
-  member1OfTeams Team[]   @relation("Member1")
-  member2OfTeams Team[]   @relation("Member2")
-  member3OfTeams Team[]   @relation("Member3")
-  subOfTeams     Team[]   @relation("Substitute")
-  teamsLed       Team[]   @relation("TeamLeader")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id             String    @id @default(cuid())
+  discordId      String    @unique
+  username       String // Copy of Discord profile name
+  embarkId       String?   @unique
+  region         Region?
+  timezone       String?
+  platform       Platform?
+  rank           UserRank  @default(USER)
+  member1OfTeams Team[]    @relation("Member1")
+  member2OfTeams Team[]    @relation("Member2")
+  member3OfTeams Team[]    @relation("Member3")
+  subOfTeams     Team[]    @relation("Substitute")
+  teamsLed       Team[]    @relation("TeamLeader")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model Team {
