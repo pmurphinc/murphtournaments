@@ -53,17 +53,17 @@ export default async function AdminMatchesPage() {
   }
 
   const tournamentsRaw = await prisma.tournament.findMany({
-    select: { id: true, title: true },
-    orderBy: { startsAt: "desc" },
+    select: { id: true, name: true },
+    orderBy: { startAt: "desc" },
   });
-  const tournaments = tournamentsRaw.map(t => ({ id: t.id, name: t.title }));
+  const tournaments = tournamentsRaw.map(t => ({ id: t.id, name: t.name }));
   const entries = await prisma.tournamentEntry.findMany({
     select: { id: true, displayName: true },
     orderBy: { id: "asc" },
   });
   const matches = await prisma.match.findMany({
     include: {
-      tournament: { select: { title: true } },
+      tournament: { select: { name: true } },
       teamA: { include: { team: true } },
       teamB: { include: { team: true } },
       winner: { include: { team: true } },
@@ -104,7 +104,7 @@ export default async function AdminMatchesPage() {
             <div key={m.id} className="grid grid-cols-[1fr_auto_auto] gap-3 p-3">
               <div className="min-w-0">
                 <div className="text-sm opacity-80">
-                  {m.tournament?.title ?? "Tournament"} • Round {m.round} • BO{m.bestOf}
+                  {m.tournament?.name ?? "Tournament"} • Round {m.round} • BO{m.bestOf}
                 </div>
                 <div className="truncate">
                   <span className="font-medium">{m.teamA?.displayName ?? m.teamA?.team?.name ?? "TBD"}</span>

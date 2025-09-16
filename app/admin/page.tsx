@@ -4,17 +4,9 @@ import Link from "next/link";
 
 export default async function AdminPage() {
   await requireRole("STAFF");
-  const t = await prisma.tournament.findMany({
-    orderBy: { startsAt: "desc" },
-    include: {
-      entries: { include: { team: true } },
-      // matches: true, // leave commented unless used by UI
-    },
+  const tournaments = await prisma.tournament.findMany({
+    orderBy: { name: "asc" },
   });
-  const tournaments = t.map(tt => ({
-    ...tt,
-    teams: tt.entries.map(e => e.team),
-  }));
   return (
     <div className="space-y-6">
       <h1 className="text-2xl">Admin</h1>
@@ -24,14 +16,7 @@ export default async function AdminPage() {
       <div className="space-y-4">
         {tournaments.map(tt => (
           <div key={tt.id} className="rounded-lg border border-zinc-800 p-4">
-            <div className="mb-2 text-lg font-semibold">{tt.title}</div>
-            <ul className="text-sm text-zinc-300">
-              {tt.teams.length === 0 ? (
-                <li className="italic text-zinc-500">No registered teams</li>
-              ) : (
-                tt.teams.map(team => <li key={team.id}>{team.name}</li>)
-              )}
-            </ul>
+            <div className="mb-2 text-lg font-semibold">{tt.name}</div>
           </div>
         ))}
       </div>

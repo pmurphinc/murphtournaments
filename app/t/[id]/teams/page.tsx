@@ -15,7 +15,7 @@ export default async function TeamsPage({ params }: { params: { id: string } }) 
   const entries = t.entries;
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl">{t.title} — Teams</h1>
+  <h1 className="text-2xl">{t.name} — Teams</h1>
       {entries.map((e) => (
         <div key={e.id} className="rounded-lg border p-3">
           <div className="font-semibold">

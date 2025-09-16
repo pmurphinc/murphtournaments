@@ -47,8 +47,8 @@ export default async function SignUpPage() {
   }
 
   const tournaments = await prisma.tournament.findMany({
-    orderBy: { startsAt: "desc" },
-    select: { id: true, title: true },
+  orderBy: { startAt: "desc" },
+  select: { id: true, name: true },
   });
 
   const captainDiscordName =
@@ -70,7 +70,7 @@ export default async function SignUpPage() {
       </div>
 
       <TeamSignupForm
-        tournaments={tournaments.map((t) => ({ id: t.id, name: t.title }))}
+  tournaments={tournaments.map((t) => ({ id: t.id, name: t.name }))}
         captainDiscordName={captainDiscordName}
         userKey={userKey}
         // ⬇️ Use the imported server action

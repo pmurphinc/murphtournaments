@@ -1,109 +1,50 @@
-// app/admin/matches/[id]/page.tsx
-export const dynamic = "force-dynamic";
-import { auth } from "@/lib/auth";
+
 import { prisma } from "@/lib/prisma";
-import { notFound, redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
-import AdminMatchForm from "@/components/Admin/AdminMatchForm";
-type Option = { id: string; name: string };
-// ----- Update server action -----
-async function updateMatch(formData: FormData): Promise<void> {
-  "use server";
-  const session = await auth();
-  if (!session?.user) throw new Error("Sign in required");
+import { auth } from "@/lib/auth";
 
-  const id = String(formData.get("id") || "");
-  const tournamentId = String(formData.get("tournamentId") || "");
-  const teamAId = String(formData.get("teamAId") || "");
-  const teamBId = String(formData.get("teamBId") || "");
-  const round = parseInt(String(formData.get("round") || "1"), 10);
-  const bestOf = parseInt(String(formData.get("bestOf") || "1"), 10);
-  const startAtIso = String(formData.get("startAtIso") || "");
-
-  if (!id) throw new Error("Missing id");
-
-// Safety checks: ensure both teams exist and are in the same tournament
-  const [teamA, teamB] = await Promise.all([
-    prisma.team.findUnique({ where: { id: teamAId }, select: { tournamentId: true } }),
-    prisma.team.findUnique({ where: { id: teamBId }, select: { tournamentId: true } }),
-  ]);
-  if (!teamA || !teamB) throw new Error("Teams not found");
-  if (teamA.tournamentId !== teamB.tournamentId) {
-    throw new Error("Teams must belong to the same tournament");
-  }
-  if (teamAId === teamBId) throw new Error("A team cannot play itself");
-
-  await prisma.match.upsert({
-    where: { id },
-    create: {
-      id, // keep route param as PK for convenience
-      tournamentId,
-      teamAEntryId: teamAId, // must be a TournamentEntry.id
-      teamBEntryId: teamBId, // must be a TournamentEntry.id
-      round,
-      bestOf,
-      status: "SCHEDULED",
-  scheduledAt: startAtIso ? new Date(startAtIso) : null,
-    },
-    update: {
-      tournamentId,
-      teamAEntryId: teamAId,
-      teamBEntryId: teamBId,
-      round,
-      bestOf,
-  scheduledAt: startAtIso ? new Date(startAtIso) : null,
-    },
-  });
-
-  revalidatePath("/schedule");
-  revalidatePath("/admin/matches");
-  redirect("/admin/matches");
-}
-
-export default async function EditMatchPage({ params }: { params: { id: string } }) {
+export default async function AdminPage() {
   const session = await auth();
   if (!session?.user) {
-    return <div className="space-y-2"><h1 className="text-2xl">Edit Match</h1><p>Please sign in.</p></div>;
+    return <div className="space-y-2"><h1 className="text-2xl">Admin</h1><p>Please sign in.</p></div>;
   }
 
-  const m = await prisma.match.findUnique({
-    where: { id: params.id },
-    include: { tournament: { select: { id: true, title: true } } },
-  });
-  if (!m) return notFound();
-
-  const [rawTournaments, rawTeams] = await Promise.all([
-    prisma.tournament.findMany({ select: { id: true, title: true }, orderBy: { startsAt: "desc" } }),
-    prisma.tournamentEntry.findMany({
-      where: { tournamentId: m.tournamentId },
-      select: { id: true, displayName: true },
-      orderBy: { seed: "asc" },
-    }),
-  ]);
-
-  const tournaments: Option[] = rawTournaments.map(t => ({ id: t.id, name: t.title }));
-  const teams: Option[] = rawTeams.map(e => ({ id: e.id, name: e.displayName }));
-
-  const initial = {
-    id: m.id,
-    tournamentId: m.tournamentId,
-    teamAId: m.teamAEntryId,
-    teamBId: m.teamBEntryId,
-    round: m.round,
-    bestOf: m.bestOf,
-    startAtIso: m.scheduledAt ? m.scheduledAt.toISOString() : null,
-  };
+  // List all tournaments and teams for management
+  const tournaments = await prisma.tournament.findMany();
+  const teams = await prisma.team.findMany();
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl">Edit Match</h1>
-      <AdminMatchForm
-        mode="edit"
-        tournaments={tournaments}
-        teams={teams}
-        initial={initial}
-        action={updateMatch}
-      />
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Admin Panel</h1>
+      <section>
+        <h2 className="text-xl font-semibold mb-2">Tournaments</h2>
+        <ul className="space-y-1">
+          {tournaments.map(t => (
+            <li key={t.id} className="border-b py-1 flex items-center justify-between">
+              <span>{t.name}</span>
+              <span className="text-xs text-gray-400">Status: {t.status}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <section>
+        <h2 className="text-xl font-semibold mb-2">Teams</h2>
+        <ul className="space-y-1">
+          {teams.map(team => (
+            <li key={team.id} className="border-b py-1 flex items-center justify-between">
+              <span>{team.name}</span>
+              <span className="text-xs text-gray-400">Leader ID: {team.leaderId || 'N/A'}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <section className="mt-6">
+        <h2 className="text-xl font-semibold mb-2">Site Management</h2>
+        <ul className="list-disc ml-6 text-sm text-gray-500">
+          <li>Feature: Add/edit/delete tournaments (coming soon)</li>
+          <li>Feature: Add/edit/delete teams (coming soon)</li>
+          <li>Feature: Manage users (coming soon)</li>
+        </ul>
+      </section>
     </div>
   );
 }

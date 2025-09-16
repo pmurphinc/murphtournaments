@@ -22,7 +22,7 @@ export default async function TournamentHome({ params }: { params: { id: string 
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl">{t.title}</h1>
+  <h1 className="text-2xl">{t.name}</h1>
       <div className="flex gap-4 text-sm">
         <Link className="hover:text-cyber-neon" href={`/t/${t.id}/bracket`}>Bracket</Link>
         <Link className="hover:text-cyber-neon" href={`/t/${t.id}/teams`}>Teams</Link>

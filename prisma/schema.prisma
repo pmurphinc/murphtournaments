@@ -1,53 +1,61 @@
+enum UserRank {
+  USER
+  ADMIN
+}
+
+enum TournamentStatus {
+  REG_OPEN
+  REG_CLOSED
+  IN_PROGRESS
+  CHECK_IN
+  FINISHED
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-enum UserRank { USER ADMIN }
-enum Region { NA EU SA APAC }
-enum Platform { PC XBOX PLAYSTATION }
-enum MainClass { LIGHT MEDIUM HEAVY }
-enum TournamentStatus { REG_OPEN REG_CLOSED IN_PROGRESS CHECK_IN FINISHED }
+
+generator client {
+  provider = "prisma-client-js"
+}
 
 model User {
-  id         String   @id @default(cuid())
-  discordId  String   @unique
-  rank       UserRank @default(USER)
-  embarkId   String?
-  region     Region?
-  platform   Platform?
-  mainClass  MainClass?
-  leaderOfTeams  Team[]   @relation("TeamLeader")
+  id             String   @id @default(cuid())
+  discordId      String   @unique
+  rank           UserRank @default(USER)
   member1OfTeams Team[]   @relation("Member1")
   member2OfTeams Team[]   @relation("Member2")
   member3OfTeams Team[]   @relation("Member3")
   subOfTeams     Team[]   @relation("Substitute")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  teamsLed       Team[]   @relation("TeamLeader")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model Team {
-  id           String  @id @default(cuid())
-  name         String  @unique
+  id           String      @id @default(cuid())
+  name         String      @unique
   logoUrl      String?
-  leader       User    @relation("TeamLeader", fields: [leaderId], references: [id])
+  leader       User        @relation("TeamLeader", fields: [leaderId], references: [id])
   leaderId     String
-  member1      User?   @relation("Member1", fields: [member1Id], references: [id])
+  member1      User?       @relation("Member1", fields: [member1Id], references: [id])
   member1Id    String?
-  member2      User?   @relation("Member2", fields: [member2Id], references: [id])
+  member2      User?       @relation("Member2", fields: [member2Id], references: [id])
   member2Id    String?
-  member3      User?   @relation("Member3", fields: [member3Id], references: [id])
+  member3      User?       @relation("Member3", fields: [member3Id], references: [id])
   member3Id    String?
-  substitute   User?   @relation("Substitute", fields: [substituteId], references: [id])
+  substitute   User?       @relation("Substitute", fields: [substituteId], references: [id])
   substituteId String?
   tournament   Tournament? @relation(fields: [tournamentId], references: [id])
   tournamentId String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }
 
 model Tournament {
-  id            String            @id @default(cuid())
-  name          String            @unique
+  id            String           @id @default(cuid())
+  name          String           @unique
   status        TournamentStatus
   startAt       DateTime?
   numberOfTeams Int?
@@ -55,6 +63,6 @@ model Tournament {
   format        String?
   eliminations  String?
   teams         Team[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 }
