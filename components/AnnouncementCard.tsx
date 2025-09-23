@@ -1,7 +1,8 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 export function AnnouncementCard({ title, body }: { title: string; body: string }) {
   // Remove unwanted control characters (e.g., BOM, null, etc.)
-  const cleanBody = body.replace(/^[\u0000-\u001F\u007F\uFEFF]+/, "");
+  // Remove all non-printable/control characters from the start of the string
+  const cleanBody = body.replace(/^[^\x20-\x7E]+/, "");
   return (
     <Card className="shadow-glow">
       <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
