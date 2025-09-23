@@ -14,6 +14,23 @@ export async function handleRegistration(formData: FormData) {
   if (!session?.user?.id) {
     return { ok: false, error: "You must be logged in." };
   }
+}
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { auth } from "@/lib/auth"; // adjust path if yours differs
+
+function slugify(input: string) {
+  return input.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").slice(0, 40);
+}
+
+export async function handleRegistration(formData: FormData) {
+  // 1) require login
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { ok: false, error: "You must be logged in." };
+  }
 
   // 2) read form field (make sure your input has name="teamName")
   const name = String(formData.get("teamName") || "").trim();
