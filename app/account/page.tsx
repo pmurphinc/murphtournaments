@@ -26,6 +26,7 @@ export default async function AccountPage() {
         </p>
       ) : (
         <>
+          {/* Saved state for feedback */}
           <form
             className="space-y-4 border border-zinc-800 rounded-lg p-4 mb-6"
             action={async (formData) => {
@@ -35,7 +36,6 @@ export default async function AccountPage() {
               const timezone = formData.get('timezone') as string;
               const platform = formData.get('platform') as string;
               if (!discordId) return;
-              // Cast region and platform to their respective enums
               await prisma.user.update({
                 where: { discordId },
                 data: {
@@ -45,6 +45,14 @@ export default async function AccountPage() {
                   platform,
                 } as any,
               });
+              // Show Saved message
+              if (typeof window !== 'undefined') {
+                const el = document.getElementById('saved-feedback');
+                if (el) {
+                  el.style.opacity = '1';
+                  setTimeout(() => { el.style.opacity = '0'; }, 2000);
+                }
+              }
             }}
           >
             <div>
@@ -110,6 +118,13 @@ export default async function AccountPage() {
             >
               Save
             </button>
+            <div
+              id="saved-feedback"
+              style={{ transition: 'opacity 0.5s', opacity: 0 }}
+              className="mt-2 text-green-400 font-semibold"
+            >
+              Saved!
+            </div>
           </form>
 
           <ul className="divide-y divide-zinc-800 overflow-hidden rounded-lg border border-zinc-800">

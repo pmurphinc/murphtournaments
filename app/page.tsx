@@ -22,31 +22,20 @@ export default async function DashboardPage() {
   // Map tournament fields for StatusBanner if tournament exists
   const sb = data.tournament
     ? {
-  name: data.tournament.name, // use name as name
-        status: data.tournament.status as any, // cast to TournyStatus
-  startsAt: data.tournament.startAt ?? null, // for StatusBanner compatibility
-        checkInOpensAt: null,
+        name: data.tournament.name,
+        status: data.tournament.status as "DRAFT" | "REGISTRATION" | "LOCKED" | "CHECKIN" | "LIVE" | "FINISHED" | "ARCHIVED",
+        startsAt: data.tournament.startAt ?? null,
       }
     : null;
-  return (
-    <div className="space-y-6">
-      <StatusBanner tournament={sb} />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="shadow-glow"><CardHeader><CardTitle>Teams Signed Up</CardTitle></CardHeader><CardContent className="text-4xl">{data.teams}</CardContent></Card>
+    return (
+      <div className="space-y-6">
+        <div className="w-full text-center py-3">
+          <span className="font-bold text-yellow-300 text-lg">This website is a work in progress. Features and data may change at any time.</span>
+        </div>
+        <StatusBanner tournament={sb} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="shadow-glow"><CardHeader><CardTitle>Teams Signed Up</CardTitle></CardHeader><CardContent className="text-4xl">{data.teams}</CardContent></Card>
+        </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card><CardHeader><CardTitle>Announcements</CardTitle></CardHeader><CardContent><ul className="space-y-2">
-          <li className="text-sm font-semibold text-yellow-300">0e0f This website is a work in progress. Features and data may change at any time.</li>
-        </ul></CardContent></Card>
-      </div>
-      <div className="mt-8">
-        <a
-          href="/registration"
-          className="inline-block px-6 py-3 bg-cyan-600 text-white font-bold rounded-lg shadow hover:bg-cyan-700 transition"
-        >
-          Team Registration
-        </a>
-      </div>
-    </div>
-  );
+    );
 }
