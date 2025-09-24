@@ -7,14 +7,16 @@ export async function POST(req: NextRequest) {
     if (!discordId) {
       return NextResponse.json({ error: "Missing discordId" }, { status: 400 });
     }
+    // Convert empty strings to null for optional fields
+    const safeData = {
+      embarkId: embarkId === "" ? null : embarkId,
+      region: region === "" ? null : region,
+      timezone: timezone === "" ? null : timezone,
+      platform: platform === "" ? null : platform,
+    };
     await prisma.user.update({
       where: { discordId },
-      data: {
-        embarkId,
-        region,
-        timezone,
-        platform,
-      },
+      data: safeData,
     });
     return NextResponse.json({ success: true });
   } catch (err) {
